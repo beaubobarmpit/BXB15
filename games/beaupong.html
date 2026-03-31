@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeauPong</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas {
+            border: 2px solid white;
+            background-color: #000;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">0 - 0</div>
+    <canvas id="pong" width="1200" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('pong');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        // Ball
+        let ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            dx: 3,
+            dy: 3,
+            radius: 40
+        };
+
+        const speedUpFactor = 1.06;
+        const maxBallSpeed = 16;
+
+        // Paddles
+        const paddleWidth = 15;
+        const paddleHeight = 120;
+        let leftPaddle = {
+            x: 0,
+            y: canvas.height / 2 - paddleHeight / 2,
+            dy: 0
+        };
+        let rightPaddle = {
+            x: canvas.width - paddleWidth,
+            y: canvas.height / 2 - paddleHeight / 2,
+            dy: 0
+        };
+
+        // Scores
+        let leftScore = 0;
+        let rightScore = 0;
+
+        // Images
+        const ballImg = new Image();
+        ballImg.src = '../images/ball.png';
+
+        const leftPaddleImg = new Image();
+        leftPaddleImg.src = '../images/bradenkiss.png';
+
+        const rightPaddleImg = new Image();
+        rightPaddleImg.src = '../images/xavierkiss.png';
+
+        const bradenKissImg = new Image();
+        bradenKissImg.src = '../images/bradenkiss.png';
+
+        const xavierKissImg = new Image();
+        xavierKissImg.src = '../images/xavierkiss.png';
+
+        const ballKissLeftImg = new Image();
+        ballKissLeftImg.src = '../images/ballkissleft.png';
+
+        const ballKissRightImg = new Image();
+        ballKissRightImg.src = '../images/ballkissright.png';
+
+        const mwahSound = new Audio('../sfx/mwah.mp3');
+        mwahSound.volume = 0.75;
+
+        let currentBallImg = ballImg;
+
+        // Draw ball
+        function drawBall() {
+            ctx.drawImage(currentBallImg, ball.x - ball.radius, ball.y - ball.radius, ball.radius * 2, ball.radius * 2);
+        }
+
+        // Draw paddles
+        function drawPaddles() {
+            ctx.drawImage(leftPaddleImg, leftPaddle.x, leftPaddle.y, paddleWidth, paddleHeight);
+            ctx.drawImage(rightPaddleImg, rightPaddle.x, rightPaddle.y, paddleWidth, paddleHeight);
+        }
+
+        // Draw center line
+        function drawCenterLine() {
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Update ball position
+        function updateBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Ball collision with top and bottom
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+                ball.dy = -ball.dy;
+            }
+
+            function increaseSpeed() {
+                ball.dx = Math.sign(ball.dx) * Math.min(Math.abs(ball.dx) * speedUpFactor, maxBallSpeed);
+                ball.dy = Math.sign(ball.dy) * Math.min(Math.abs(ball.dy) * speedUpFactor, maxBallSpeed);
+            }
+
+            // Ball collision with left paddle
+            if (ball.x - ball.radius < leftPaddle.x + paddleWidth &&
+                ball.y > leftPaddle.y &&
+                ball.y < leftPaddle.y + paddleHeight &&
+                ball.dx < 0) {
+                ball.dx = -ball.dx;
+                increaseSpeed();
+                currentBallImg = ballKissLeftImg; // Change to kissing left
+                mwahSound.currentTime = 0;
+                mwahSound.play().catch(() => {});
+                setTimeout(() => currentBallImg = ballImg, 500);
+            }
+
+            // Ball collision with right paddle
+            if (ball.x + ball.radius > rightPaddle.x &&
+                ball.y > rightPaddle.y &&
+                ball.y < rightPaddle.y + paddleHeight &&
+                ball.dx > 0) {
+                ball.dx = -ball.dx;
+                increaseSpeed();
+                currentBallImg = ballKissRightImg; // Change to kissing right
+                mwahSound.currentTime = 0;
+                mwahSound.play().catch(() => {});
+                setTimeout(() => currentBallImg = ballImg, 500);
+            }
+
+            // Ball out of bounds
+            if (ball.x < 0) {
+                rightScore++;
+                resetBall();
+            } else if (ball.x > canvas.width) {
+                leftScore++;
+                resetBall();
+            }
+        }
+
+        // Reset ball to center
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = -ball.dx; // Change direction
+            currentBallImg = ballImg; // Reset to facing forward
+            updateScore();
+        }
+
+        function moveRightPaddleAI() {
+            const targetY = ball.y - paddleHeight / 2;
+            const aiSpeed = 6;
+            if (rightPaddle.y + paddleHeight / 2 < ball.y - 10) {
+                rightPaddle.dy = aiSpeed;
+            } else if (rightPaddle.y + paddleHeight / 2 > ball.y + 10) {
+                rightPaddle.dy = -aiSpeed;
+            } else {
+                rightPaddle.dy = 0;
+            }
+        }
+
+        // Update paddles
+        function updatePaddles() {
+            leftPaddle.y += leftPaddle.dy;
+            rightPaddle.y += rightPaddle.dy;
+
+            // Keep paddles in bounds
+            if (leftPaddle.y < 0) leftPaddle.y = 0;
+            if (leftPaddle.y > canvas.height - paddleHeight) leftPaddle.y = canvas.height - paddleHeight;
+            if (rightPaddle.y < 0) rightPaddle.y = 0;
+            if (rightPaddle.y > canvas.height - paddleHeight) rightPaddle.y = canvas.height - paddleHeight;
+        }
+
+        // Update score display
+        function updateScore() {
+            scoreElement.textContent = leftScore + ' - ' + rightScore;
+        }
+
+        // Draw everything
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawCenterLine();
+            drawBall();
+            drawPaddles();
+        }
+
+        // Game loop
+        function gameLoop() {
+            moveRightPaddleAI();
+            updateBall();
+            updatePaddles();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'w':
+                case 'W':
+                    leftPaddle.dy = -7.5;
+                    break;
+                case 's':
+                case 'S':
+                    leftPaddle.dy = 7.5;
+                    break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    // No manual right paddle controls in 1-player mode
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.key) {
+                case 'w':
+                case 'W':
+                case 's':
+                case 'S':
+                    leftPaddle.dy = 0;
+                    break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    // No manual right paddle controls in 1-player mode
+                    rightPaddle.dy = 0;
+                    break;
+            }
+        });
+
+        // Start game when all images load
+        let imagesLoaded = 0;
+        const totalImages = 7;
+
+        function checkImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                gameLoop();
+            }
+        }
+
+        ballImg.onload = checkImagesLoaded;
+        leftPaddleImg.onload = checkImagesLoaded;
+        rightPaddleImg.onload = checkImagesLoaded;
+        bradenKissImg.onload = checkImagesLoaded;
+        xavierKissImg.onload = checkImagesLoaded;
+        ballKissLeftImg.onload = checkImagesLoaded;
+        ballKissRightImg.onload = checkImagesLoaded;
+    </script>
+</body>
+</html>
