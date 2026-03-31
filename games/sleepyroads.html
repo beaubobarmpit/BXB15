@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleepy Roads</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #0a0e27;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+        }
+        .container-fluid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        canvas {
+            border: 3px solid #4a9eff;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+            border-radius: 4px;
+        }
+        #score {
+            font-size: 24px;
+            font-weight: 600;
+            color: #4a9eff;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+        }
+        #gameOver {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
+            padding: 50px;
+            border: 3px solid #4a9eff;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(74, 158, 255, 0.4);
+        }
+        #gameOverText {
+            color: #4a9eff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+        }
+        #gameOver button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #gameOver button:hover {
+            background-color: #6bb3ff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
+        }
+        .info-text {
+            color: #8a8a8a;
+            font-size: 14px;
+            margin-top: 15px;
+            letter-spacing: 0.5px;
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background-color: #6bb3ff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
+        }
+        #sleepiness {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <a href="../index.html" class="back-button">← Back</a>
+        <div id="score">Distance: 0</div>
+        <div id="sleepiness">Sleepiness: 0</div>
+        <canvas id="sleepyroads" width="800" height="600"></canvas>
+        <div class="info-text">Use A/D to steer · Space to stay awake · Collect energy drinks!</div>
+    </div>
+    
+    <div id="gameOver">
+        <div id="gameOverText"></div>
+        <button onclick="location.reload()">Try Again</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const canvas = document.getElementById('sleepyroads');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const sleepinessElement = document.getElementById('sleepiness');
+        const gameOverDiv = document.getElementById('gameOver');
+        const gameOverText = document.getElementById('gameOverText');
+
+        let gameEnded = false;
+        let distance = 0;
+        let sleepiness = 0;
+        const maxSleepiness = 100;
+
+        // Car (Braden)
+        let car = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 100,
+            width: 50,
+            height: 80,
+            dx: 0,
+            acceleration: 0.5,
+            maxSpeed: 5
+        };
+
+        // Road lines
+        let roadLines = [];
+        for (let i = 0; i < 10; i++) {
+            roadLines.push({ x: canvas.width / 2 - 5, y: i * 60, width: 10, height: 30 });
+        }
+
+        // Obstacles (sleepy hallucinations)
+        let obstacles = [];
+        let obstacleSpeed = 2;
+
+        // Energy drinks
+        let energyDrinks = [];
+
+        // Images (placeholders - user can replace with actual images)
+        const carImg = new Image();
+        carImg.src = '../images/braden_car.png'; // Braden's sleepy car
+
+        const obstacleImg = new Image();
+        obstacleImg.src = '../images/sleepy_obstacle.png'; // Maybe a pillow or something sleepy
+
+        const energyImg = new Image();
+        energyImg.src = '../images/energy_drink.png'; // Energy drink image
+
+        // Draw car
+        function drawCar() {
+            ctx.drawImage(carImg, car.x, car.y, car.width, car.height);
+        }
+
+        // Draw road
+        function drawRoad() {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            roadLines.forEach(line => {
+                ctx.fillRect(line.x, line.y, line.width, line.height);
+            });
+        }
+
+        // Draw obstacles
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                ctx.drawImage(obstacleImg, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        // Draw energy drinks
+        function drawEnergyDrinks() {
+            energyDrinks.forEach(drink => {
+                ctx.drawImage(energyImg, drink.x, drink.y, drink.width, drink.height);
+            });
+        }
+
+        // Update road
+        function updateRoad() {
+            roadLines.forEach(line => {
+                line.y += obstacleSpeed;
+                if (line.y > canvas.height) {
+                    line.y = -30;
+                }
+            });
+        }
+
+        // Update obstacles
+        function updateObstacles() {
+            if (Math.random() < 0.02) {
+                obstacles.push({
+                    x: Math.random() * (canvas.width - 50),
+                    y: -50,
+                    width: 50,
+                    height: 50
+                });
+            }
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacleSpeed;
+                if (obstacle.y > canvas.height) {
+                    obstacles.splice(index, 1);
+                    distance += 10;
+                }
+                // Collision detection
+                if (car.x < obstacle.x + obstacle.width &&
+                    car.x + car.width > obstacle.x &&
+                    car.y < obstacle.y + obstacle.height &&
+                    car.y + car.height > obstacle.y) {
+                    endGame('You fell asleep and crashed!');
+                }
+            });
+        }
+
+        // Update energy drinks
+        function updateEnergyDrinks() {
+            if (Math.random() < 0.01) { // Less frequent than obstacles
+                energyDrinks.push({
+                    x: Math.random() * (canvas.width - 30),
+                    y: -30,
+                    width: 30,
+                    height: 30
+                });
+            }
+            energyDrinks.forEach((drink, index) => {
+                drink.y += obstacleSpeed;
+                if (drink.y > canvas.height) {
+                    energyDrinks.splice(index, 1);
+                }
+                // Collision detection
+                if (car.x < drink.x + drink.width &&
+                    car.x + car.width > drink.x &&
+                    car.y < drink.y + drink.height &&
+                    car.y + car.height > drink.y) {
+                    sleepiness = Math.max(0, sleepiness - 20);
+                    energyDrinks.splice(index, 1);
+                }
+            });
+        }
+
+        // Update car
+        function updateCar() {
+            // Apply acceleration based on input
+            if (car.inputLeft) {
+                car.dx -= car.acceleration;
+            }
+            if (car.inputRight) {
+                car.dx += car.acceleration;
+            }
+
+            // Apply friction (less friction = more slippery when sleepier)
+            let friction = 0.9 - (sleepiness / 200); // Higher sleepiness = lower friction (more sliding)
+            if (friction < 0.5) friction = 0.5; // Minimum friction
+            car.dx *= friction;
+
+            // Clamp speed
+            if (car.dx > car.maxSpeed) car.dx = car.maxSpeed;
+            if (car.dx < -car.maxSpeed) car.dx = -car.maxSpeed;
+
+            car.x += car.dx;
+            if (car.x < 0) car.x = 0;
+            if (car.x + car.width > canvas.width) car.x = canvas.width - car.width;
+        }
+
+        // Update sleepiness
+        function updateSleepiness() {
+            sleepiness += 0.1; // Slower increase
+            sleepinessElement.textContent = 'Sleepiness: ' + Math.floor(sleepiness);
+        }
+
+        // Update score
+        function updateScore() {
+            scoreElement.textContent = 'Distance: ' + distance;
+        }
+
+        // End game
+        function endGame(message) {
+            gameEnded = true;
+            gameOverText.textContent = message;
+            gameOverDiv.style.display = 'block';
+        }
+
+        // Draw everything
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawRoad();
+            drawObstacles();
+            drawEnergyDrinks();
+            drawCar();
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameEnded) {
+                updateRoad();
+                updateObstacles();
+                updateEnergyDrinks();
+                updateCar();
+                updateSleepiness();
+                updateScore();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle keyboard input
+        car.inputLeft = false;
+        car.inputRight = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (gameEnded) return;
+            switch (e.key) {
+                case 'a':
+                case 'A':
+                    car.inputLeft = true;
+                    break;
+                case 'd':
+                case 'D':
+                    car.inputRight = true;
+                    break;
+                case ' ': // Space to stay awake (reduces sleepiness slightly)
+                    sleepiness = Math.max(0, sleepiness - 5);
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.key) {
+                case 'a':
+                case 'A':
+                    car.inputLeft = false;
+                    break;
+                case 'd':
+                case 'D':
+                    car.inputRight = false;
+                    break;
+            }
+        });
+
+        // Start game when images load
+        let imagesLoaded = 0;
+        const totalImages = 3;
+
+        function checkImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                gameLoop();
+            }
+        }
+
+        carImg.onload = checkImagesLoaded;
+        obstacleImg.onload = checkImagesLoaded;
+        energyImg.onload = checkImagesLoaded;
+    </script>
+</body>
+</html>
