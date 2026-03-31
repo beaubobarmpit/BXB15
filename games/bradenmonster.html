@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soda Drop Reaction Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #1f2833; color: #f8f8f2; min-height: 100vh; }
+        .game-wrap { max-width: 480px; margin: 2rem auto; text-align: center; }
+        .machine { position: relative; width: 300px; height: 420px; margin: 1.5rem auto; border: 5px solid #66fcf1; border-radius: 18px; background: linear-gradient(to bottom, #0b2259 0%, #151f30 100%); box-shadow: 0 0 24px rgba(0,255,255,.35); overflow: hidden; }
+        .machine::before { content: 'VENDING MACHINE'; position: absolute; width: 100%; top: 6px; left: 0; font-size: 14px; font-weight: bold; color: #c5c6c7; letter-spacing: .1em; }
+        .machine-inner { position: absolute; inset: 12px; border: 2px dashed #45a29e; border-radius: 12px; overflow: hidden; }
+        .can { position: absolute; left: calc(50% - 48px); width: 96px; height: 96px; cursor: pointer; user-select: none; }
+        .can img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+        .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; background: linear-gradient(to right, #45a29e, #1f8a9f); }
+        .btn-group { margin-top: 12px; }
+        .message { min-height: 2rem; margin-top: 0.75rem; font-size: 1.05rem; }
+    </style>
+</head>
+<body>
+    <div class="game-wrap">
+        <h1 class="h3 text-cyan">Soda Drop Catch</h1>
+        <p>Wait for the can to drop, then click it within 350ms to catch it.</p>
+        <div class="machine" id="machine">
+            <div class="machine-inner" id="machineInner">
+                <div class="can" id="can" title="Click me"><img src="../images/whitemonster.png" alt="White Monster" /></div>
+                <div class="floor"></div>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-success" id="startBtn">Start Round</button>
+            <button class="btn btn-warning" id="resetBtn" disabled>Reset</button>
+        </div>
+        <div class="message" id="message">Press Start to begin.</div>
+        <div class="text-muted mt-2" id="stats">Best: -- ms | Last: -- ms | Wins: 0</div>
+    </div>
+
+    <script>
+        const can = document.getElementById('can');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const message = document.getElementById('message');
+        const stats = document.getElementById('stats');
+        let startTime = null;
+        let dropTimer = null;
+        let gameActive = false;
+        let dropped = false;
+        let roundComplete = false;
+        let lastReaction = '--';
+        let bestReaction = Infinity;
+        let wins = 0;
+
+        function setCanToStart() {
+            can.style.transition = 'none';
+            can.style.top = '8px';
+            dropped = false;
+            roundComplete = false;
+            startTime = null;
+        }
+
+        function updateStats() {
+            stats.textContent = `Best: ${bestReaction === Infinity ? '--' : bestReaction.toFixed(0)} ms | Last: ${lastReaction} ms | Wins: ${wins}`;
+        }
+
+        function startRound() {
+            if (gameActive) return;
+            gameActive = true;
+            setCanToStart();
+            message.textContent = 'Get ready...';
+            startBtn.disabled = true;
+            resetBtn.disabled = false;
+
+            const delay = 1200 + Math.random() * 1800;
+            dropTimer = setTimeout(() => {
+                message.textContent = 'DROP! Click now!';
+                startTime = performance.now();
+
+                can.style.transition = 'top 0.5s ease-in';
+                can.style.top = '280px';
+
+                dropped = true;
+                setTimeout(() => {
+                    if (!roundComplete) {
+                        roundComplete = true;
+                        gameActive = false;
+                        message.innerHTML = '<span style="color:#ff4d6d;">Missed! Too late to click on time.</span>';
+                        lastReaction = 'miss';
+                        updateStats();
+                        startBtn.disabled = false;
+                    }
+                }, 700);
+            }, delay);
+        }
+
+        function catchCan() {
+            if (!gameActive || !dropped || roundComplete) return;
+
+            const reaction = performance.now() - startTime;
+            roundComplete = true;
+            gameActive = false;
+            lastReaction = reaction.toFixed(0);
+            if (reaction <= 350) {
+                wins++;
+                bestReaction = Math.min(bestReaction, reaction);
+                message.innerHTML = `<span style="color:#8cff66;">Win! Reaction: ${lastReaction} ms.</span>`;
+            } else {
+                message.innerHTML = `<span style="color:#ffcc66;">Too slow: ${lastReaction} ms (limit 350ms).</span>`;
+            }
+            updateStats();
+            startBtn.disabled = false;
+        }
+
+        document.addEventListener('click', catchCan);
+        // Keep can click for intuitive feedback too
+        can.addEventListener('click', event => event.stopPropagation());
+
+        startBtn.addEventListener('click', () => {
+            clearTimeout(dropTimer);
+            startRound();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            clearTimeout(dropTimer);
+            gameActive = false;
+            setCanToStart();
+            message.textContent = 'Reset complete. Press start to try again.';
+            lastReaction = '--';
+            bestReaction = Infinity;
+            wins = 0;
+            updateStats();
+            startBtn.disabled = false;
+            resetBtn.disabled = true;
+        });
+
+        setCanToStart();
+        updateStats();
+    </script>
+</body>
+</html>
