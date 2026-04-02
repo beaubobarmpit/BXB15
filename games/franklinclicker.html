@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Franklin Clicker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #f0f0f0;
+            background: linear-gradient(170deg, #0a0e27 0%, #162648 45%, #1c3b6c 100%);
+            background-image: radial-gradient(circle at 20% 15%, rgba(255,255,255,.13) 0%, transparent 35%),
+                              radial-gradient(circle at 80% 20%, rgba(255,255,255,.08) 0%, transparent 35%),
+                              radial-gradient(circle at 50% 80%, rgba(1,59,152,.18) 0%, transparent 40%),
+                              linear-gradient(170deg, #0a0e27 0%, #162648 45%, #1c3b6c 100%);
+            background-attachment: fixed;
+        }
+
+        .page-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: start;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .game-card {
+            width: min(1040px, 100%);
+            background: rgba(8, 14, 40, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.36);
+            border-radius: 18px;
+            padding: 1.25rem;
+            backdrop-filter: blur(6px);
+        }
+
+        .game-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .game-title {
+            margin: 0;
+            font-size: clamp(1.7rem, 3vw, 2.5rem);
+            color: #ffdd7f;
+            text-shadow: 0 0 16px rgba(255, 220, 123, 0.8);
+        }
+
+        .back-button {
+            color: #2155ab;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255,255,255,0.25);
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.24);
+            box-shadow: 0 0 12px rgba(255,255,255,0.25);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .click-panel, .right-panel {
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 14px;
+            background: rgba(5, 14, 45, 0.85);
+            padding: 1rem;
+        }
+
+        .click-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 460px;
+        }
+
+        .stats, .controls {
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.6rem;
+            font-size: 1.1rem;
+        }
+
+        .stat-item span:first-child {
+            color: #a8cfff;
+        }
+
+        .stat-item strong {
+            color: #fff;
+        }
+
+        .cookie-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            margin-bottom: 1.1rem;
+        }
+
+        #cookieImage {
+            width: min(420px, 75vw);
+            height: min(420px, 75vw);
+            max-width: 420px;
+            max-height: 420px;
+            border: 10px solid rgba(255,223,150,0.35);
+            box-shadow: 0 0 28px rgba(255, 235, 154, 0.52);
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ffd27e, #fab84f);
+            cursor: pointer;
+            transform: perspective(120px) rotateX(0deg);
+            transition: transform 0.12s ease, filter .15s;
+            user-select: none;
+            object-fit: cover;
+        }
+
+        #cookieImage:active {
+            transform: perspective(120px) rotateX(5deg) scale(0.96);
+            filter: brightness(1.08) saturate(1.28);
+        }
+
+        .cookie-hit {
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            color: #ffdf8a;
+            filter: drop-shadow(0 0 6px rgba(255,235,176,0.8));
+        }
+
+        .upgrades {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .upgrade-card {
+            background: rgba(24, 40, 78, 0.92);
+            border: 1px solid rgba(134,193,255,0.25);
+            border-radius: 12px;
+            padding: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upgrade-card h4 {
+            margin: 0;
+            font-size: 1rem;
+            color: #ffe8b3;
+        }
+
+        .upgrade-card p {
+            margin: .25rem 0 .5rem;
+            color: #c1d8ff;
+            font-size: .92rem;
+        }
+
+        .cool-btn {
+            width: 100%;
+            border: 0;
+            border-radius: 10px;
+            font-weight: 700;
+            padding: 0.62rem;
+            cursor: pointer;
+            margin-top: 0.3rem;
+            background: linear-gradient(135deg, #ffaa33, #ffcc57);
+            color: #3e1f00;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 4px 10px rgba(0,0,0,0.35);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .cool-btn:hover { transform: translateY(-1px); }
+        .cool-btn:active { transform: translateY(1px); }
+
+        .mixed-btn {
+            background: linear-gradient(135deg, #7dca6a, #92e286);
+            color: #07520f;
+        }
+
+        .danger-btn {
+            background: linear-gradient(135deg, #fd6969, #ffb5b5);
+            color: #5d1414;
+        }
+
+        .message {
+            min-height: 24px;
+            font-size: .95rem;
+            margin-top: .75rem;
+            color: #b7f6ff;
+            text-shadow: 0 0 12px rgba(123, 212, 255, 0.6);
+        }
+
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+            .game-header { flex-direction: column; align-items: flex-start; }
+            .back-button { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <main class="game-card">
+            <div class="game-header">
+                <h1 class="game-title">Franklin Clicker</h1>
+                <a class="back-button" href="../index.html">← Back to Games</a>
+            </div>
+
+            <div class="grid">
+                <section class="click-panel">
+                    <div class="cookie-area">
+                        <img id="cookieImage" src="../images/frankie.png" alt="Frankie Cookie" title="Click Franklin!" />
+                        <div class="cookie-hit">Click Franklin for coins!</div>
+                    </div>
+                </section>
+
+                <section class="right-panel">
+                    <section class="stats">
+                        <div class="stat-item"><span>Coins</span><strong id="coinCount">0</strong></div>
+                        <div class="stat-item"><span>Click Value</span><strong id="clickValue">1x</strong></div>
+                        <div class="stat-item"><span>Auto Clickers</span><strong id="autoClickers">0</strong></div>
+                        <div class="stat-item"><span>Per Second</span><strong id="currentCPS">0</strong></div>
+                        <div class="stat-item"><span>Auto cost</span><strong id="autoCost">50</strong></div>
+                        <div class="stat-item"><span>Mult cost</span><strong id="multiCost">100</strong></div>
+                    </section>
+
+                    <section class="controls">
+                    <div class="upgrades">
+                        <div class="upgrade-card">
+                            <div>
+                                <h4>Auto Clicker</h4>
+                                <p>Automatically earn coins every second.</p>
+                            </div>
+                            <button id="buyAuto" class="cool-btn" type="button">Buy</button>
+                        </div>
+
+                        <div class="upgrade-card">
+                            <div>
+                                <h4>Multiplier</h4>
+                                <p>Increase Franklin's click power.</p>
+                            </div>
+                            <button id="buyMult" class="cool-btn mixed-btn" type="button">Buy</button>
+                        </div>
+                    </div>
+
+                    <button id="resetGame" class="cool-btn danger-btn" type="button">Reset Progress</button>
+                    <div class="message" id="message"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'franklin-clicker-state-v1';
+
+        const state = {
+            coins: 0,
+            clickValue: 1,
+            autoClickers: 0,
+            cps: 0,
+            autoCost: 50,
+            multiCost: 100,
+        };
+
+        const refs = {
+            coinCount: document.getElementById('coinCount'),
+            clickValue: document.getElementById('clickValue'),
+            autoClickers: document.getElementById('autoClickers'),
+            currentCPS: document.getElementById('currentCPS'),
+            autoCost: document.getElementById('autoCost'),
+            multiCost: document.getElementById('multiCost'),
+            message: document.getElementById('message'),
+            cookieImage: document.getElementById('cookieImage'),
+            buyAuto: document.getElementById('buyAuto'),
+            buyMult: document.getElementById('buyMult'),
+            resetGame: document.getElementById('resetGame'),
+        };
+
+        function loadState() {
+            try {
+                const loaded = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (loaded && typeof loaded === 'object') Object.assign(state, loaded);
+            } catch (error) {
+                console.warn('Cannot parse saved state', error);
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function updateUI() {
+            refs.coinCount.textContent = Math.floor(state.coins);
+            refs.clickValue.textContent = state.clickValue + 'x';
+            refs.autoClickers.textContent = state.autoClickers;
+            state.cps = state.autoClickers * state.clickValue;
+            refs.currentCPS.textContent = state.cps;
+            refs.autoCost.textContent = state.autoCost;
+            refs.multiCost.textContent = state.multiCost;
+            refs.buyAuto.disabled = state.coins < state.autoCost;
+            refs.buyMult.disabled = state.coins < state.multiCost;
+            refs.buyAuto.style.opacity = refs.buyAuto.disabled ? .6 : 1;
+            refs.buyMult.style.opacity = refs.buyMult.disabled ? .6 : 1;
+            refs.buyAuto.textContent = `Buy Auto Clicker (${state.autoCost} coins)`;
+            refs.buyMult.textContent = `Buy Multiplier (${state.multiCost} coins)`;
+        }
+
+        function showMessage(text) {
+            refs.message.textContent = text;
+            clearTimeout(showMessage.timeout);
+            showMessage.timeout = setTimeout(() => { refs.message.textContent = ''; }, 2100);
+        }
+
+        function addCoins(amount) {
+            state.coins = Math.max(0, state.coins + amount);
+            updateUI();
+            saveState();
+        }
+
+        function triggerClick() {
+            addCoins(state.clickValue);
+            refs.cookieImage.classList.add('active');
+            setTimeout(() => refs.cookieImage.classList.remove('active'), 90);
+        }
+
+        refs.cookieImage.addEventListener('click', () => {
+            triggerClick();
+            showMessage('+ ' + state.clickValue + ' coins');
+        });
+
+        refs.buyAuto.addEventListener('click', () => {
+            if (state.coins >= state.autoCost) {
+                state.coins -= state.autoCost;
+                state.autoClickers += 1;
+                state.autoCost = Math.ceil(state.autoCost * 1.35);
+                saveState();
+                updateUI();
+                showMessage('Auto Clicker purchased!');
+            } else {
+                showMessage('Need more coins for Auto Clicker.');
+            }
+        });
+
+        refs.buyMult.addEventListener('click', () => {
+            if (state.coins >= state.multiCost) {
+                state.coins -= state.multiCost;
+                state.clickValue += 1;
+                state.multiCost = Math.ceil(state.multiCost * 1.8);
+                saveState();
+                updateUI();
+                showMessage('Multiplier purchased!');
+            } else {
+                showMessage('Need more coins for Multiplier.');
+            }
+        });
+
+        refs.resetGame.addEventListener('click', () => {
+            if (!confirm('Reset your Franklin coins and upgrades?')) return;
+            Object.assign(state, {
+                coins: 0,
+                clickValue: 1,
+                autoClickers: 0,
+                cps: 0,
+                autoCost: 50,
+                multiCost: 100,
+            });
+            saveState();
+            updateUI();
+            showMessage('Game reset. Good luck!');
+        });
+
+        loadState();
+        updateUI();
+
+        setInterval(() => {
+            if (state.autoClickers > 0) addCoins(state.cps);
+        }, 1000);
+    </script>
+</body>
+</html>

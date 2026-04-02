@@ -1,0 +1,630 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Wooden Jump</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #0a0e27;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        .container-fluid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+        }
+        #canvasWrapper {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 120px);
+            border: 3px solid #4a9eff;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: #e8f8ff;
+            text-shadow: 0 0 8px rgba(0, 160, 255, 0.7);
+        }
+        #message {
+            text-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(2, 15, 40, 0.65);
+            border: 1px solid rgba(122, 204, 255, 0.5);
+        }
+        #actionBtn {
+            margin: 10px 0;
+            font-size: 1rem;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #73d0ff, #1979cc);
+            color: #fff;
+            border: 1px solid #a6e4ff;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #actionBtn:hover { filter: brightness(1.1); }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 14px;
+            z-index: 100;
+        }
+        .back-button:hover {
+            background-color: #6bb3ff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-button">← Back</a>
+    <div class="container-fluid">
+        <div id="hud">
+            <span id="score">Score: 0</span>
+            <span id="height">Height: 0</span>
+            <span id="difficulty">Difficulty: Easy</span>
+            <span id="records"></span>
+        </div>
+        <div id="canvasWrapper">
+            <canvas id="gameCanvas" width="480" height="720"></canvas>
+        </div>
+        <button id="actionBtn">Start / Restart</button>
+        <div id="message">Use A/D or ←/→ to move, jump on platforms, avoid dropping.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreLabel = document.getElementById('score');
+        const heightLabel = document.getElementById('height');
+        const recordsLabel = document.getElementById('records');
+        const actionBtn = document.getElementById('actionBtn');
+
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        const dpr = window.devicePixelRatio || 1;
+        let styleWidth = 480;
+        let styleHeight = 720;
+
+        function resizeCanvas() {
+            const cssWidth = Math.max(320, canvasWrapper.clientWidth);
+            const cssHeight = Math.max(360, canvasWrapper.clientHeight);
+            styleWidth = cssWidth;
+            styleHeight = cssHeight;
+            canvas.style.width = cssWidth + 'px';
+            canvas.style.height = cssHeight + 'px';
+            canvas.width = Math.floor(cssWidth * dpr);
+            canvas.height = Math.floor(cssHeight * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.imageSmoothingEnabled = true;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', () => requestAnimationFrame(resizeCanvas));
+
+        const playerImg = new Image();
+        playerImg.src = '../images/ball.png';
+
+        const platformStickImg = new Image();
+        platformStickImg.src = '../images/bradensmonster.png';
+
+        const breakablePlatImg = new Image();
+        breakablePlatImg.src = '../images/sleepy_obstacle.png';
+
+        const gameState = {
+            running: false,
+            score: 0,
+            highest: Number(localStorage.getItem('woodenJumpHighScore') || 0),
+            height: 0,
+            gravity: 1300,
+            worldY: 0,
+            difficulty: 0.6,
+            accelX: 0,
+            keys: { left: false, right: false },
+            gameOver: false,
+            lastTime: 0,
+            starField: []
+        };
+
+        const player = {
+            x: styleWidth / 2 - 20,
+            y: styleHeight - 120,
+            w: 44,
+            h: 44,
+            vx: 0,
+            vy: 0,
+            speed: 480,
+            jumpVelocity: -780,
+            bounceFactor: 0.83,
+            grounded: false,
+            angle: 0
+        };
+
+        const platforms = [];
+        const enemies = [];
+        const powerups = [];
+
+        const enemyImg = new Image();
+        enemyImg.src = '../images/badguy.png';
+
+        const launchPowerupImg = new Image();
+        launchPowerupImg.src = '../images/PropellerHat.png';
+
+        function initStars() {
+            gameState.starField = [];
+            gameState.parallaxClouds = [];
+            for (let i = 0; i < 120; i++) {
+                gameState.starField.push({
+                    x: Math.random() * styleWidth,
+                    y: Math.random() * styleHeight,
+                    r: Math.random() * 1.8 + 0.3,
+                    speed: Math.random() * 30 + 20
+                });
+            }
+            for (let i = 0; i < 14; i++) {
+                gameState.parallaxClouds.push({
+                    x: Math.random() * styleWidth,
+                    y: Math.random() * styleHeight,
+                    w: 100 + Math.random() * 120,
+                    h: 20 + Math.random() * 14,
+                    speed: 10 + Math.random() * 18,
+                    alpha: 0.18 + Math.random() * 0.12
+                });
+            }
+        }
+
+        function getMaxJumpGap() {
+            const v = Math.abs(player.jumpVelocity);
+            return (v * v) / (2 * gameState.gravity);
+        }
+
+        function createPlatform(y) {
+            const w = Math.random() * 80 + 80;
+            const maxReach = Math.min(styleWidth * 0.7, 160 + gameState.difficulty * 36);
+            let x;
+            if (typeof gameState.lastPlatformX === 'number') {
+                const deltaX = (Math.random() * 2 - 1) * maxReach;
+                x = Math.max(8, Math.min(styleWidth - w - 8, gameState.lastPlatformX + deltaX));
+            } else {
+                x = Math.random() * (styleWidth - w - 16) + 8;
+            }
+
+            const breakableOdds = Math.min(0.9, 0.08 + (gameState.difficulty - 0.6) * 0.15);
+            let platformType = 'normal';
+            if (Math.random() < breakableOdds) platformType = 'breakable';
+            if (gameState.difficulty >= 6) platformType = 'breakable'; // Insane: all breakable
+
+            if (gameState.difficulty >= 2.5 && Math.random() < 0.28) {
+                platformType = Math.random() < 0.55 ? 'movingX' : 'movingY';
+            }
+
+            const platform = {
+                x,
+                y,
+                w,
+                h: 14,
+                type: platformType,
+            };
+
+            if (platformType === 'movingX') {
+                platform.speed = 12 + gameState.difficulty * 8; // slow
+                platform.direction = Math.random() < 0.5 ? -1 : 1;
+                platform.minX = 8;
+                platform.maxX = styleWidth - w - 8;
+            } else if (platformType === 'movingY') {
+                platform.speed = 8 + gameState.difficulty * 5; // slow
+                platform.baseY = y;
+                platform.range = 18 + gameState.difficulty * 10;
+            }
+
+            gameState.lastPlatformX = x;
+            return platform;
+        }
+
+        function createEnemy(y) {
+            const w = 48;
+            return {
+                x: Math.random() * (styleWidth - w - 16) + 8,
+                y,
+                w,
+                h: 48,
+                speed: 60 + gameState.difficulty * 20,
+                direction: Math.random() < 0.5 ? -1 : 1
+            };
+        }
+
+        function createPowerup(y) {
+            const s = 34;
+            return {
+                x: Math.random() * (styleWidth - s - 16) + 8,
+                y,
+                w: s,
+                h: s,
+                type: 'launch'
+            };
+        }
+
+        function resetGame() {
+            gameState.running = true;
+            gameState.gameOver = false;
+            gameState.worldY = 0;
+            gameState.score = 0;
+            gameState.height = 0;
+            gameState.difficulty = 0.6;
+            gameState.lastPlatformX = styleWidth / 2;
+            player.x = styleWidth / 2 - player.w / 2;
+            player.y = styleHeight - 140;
+            player.vx = 0;
+            player.vy = 0;
+            player.angle = 0;
+            platforms.length = 0;
+            enemies.length = 0;
+            powerups.length = 0;
+
+            let y = styleHeight - 50;
+            while (y > -800) {
+                platforms.push(createPlatform(y));
+                y -= 100;
+            }
+            platforms.push({ x: styleWidth / 2 - 60, y: styleHeight - 20, w: 120, h: 14, type: 'solid'});
+            initStars();
+            actionBtn.textContent = 'Restart';
+            if (!gameState.highest) recordsLabel.textContent = '';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function triggerGameOver(reason) {
+            gameState.running = false;
+            gameState.gameOver = true;
+            actionBtn.textContent = 'Restart';
+            document.getElementById('message').textContent = `Game Over: ${reason}`;
+        }
+
+        function update(delta) {
+            const direction = (gameState.keys.right ? 1 : 0) - (gameState.keys.left ? 1 : 0);
+            const targetVx = direction * player.speed;
+            player.vx += (targetVx - player.vx) * clamp(delta * 14, 0, 1);
+            player.y += player.vy * delta;
+            player.x += player.vx * delta;
+
+            if (player.x < -player.w * 0.5) player.x = styleWidth - player.w * 0.5;
+            if (player.x > styleWidth - player.w * 0.5) player.x = -player.w * 0.5;
+
+            gameState.difficulty = Math.min(7, 0.6 + gameState.score / 3250); // 5x slower rise
+            const diffLabel = gameState.difficulty;
+            gameState.gravity = 1100 + Math.round(90 * diffLabel);
+            player.speed = 260 + Math.round(60 * diffLabel);
+            player.jumpVelocity = -600 - Math.round(50 * diffLabel);
+
+            player.vy += gameState.gravity * delta;
+            player.grounded = false;
+
+            // spawn enemies + powerups
+            if (Math.random() < (0.003 + 0.0013 * gameState.difficulty) * (delta * 60)) {
+                enemies.push(createEnemy(-60));
+            }
+            if (Math.random() < 0.0002 * (delta * 60)) { // extremely rare
+                powerups.push(createPowerup(-40));
+            }
+
+            // rotation/flip during jump
+            if (!player.grounded) {
+                player.angle += player.vy * 0.006 * delta * 60;
+            } else {
+                player.angle *= 0.85;
+            }
+
+            // Platform collisions when falling
+            if (player.vy > 0) {
+                for (let platform of platforms) {
+                    if (platform.type === 'missing') continue;
+                    if (player.x + player.w * 0.8 > platform.x && player.x + player.w * 0.2 < platform.x + platform.w
+                        && player.y + player.h > platform.y && player.y + player.h < platform.y + platform.h + 18)
+                    {
+                        if (player.vy > 180) {
+                            player.y = platform.y - player.h;
+                            player.vy = player.jumpVelocity;
+                            player.grounded = true;
+                            if (platform.type === 'breakable') {
+                                platform.type = 'missing';
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (player.y < styleHeight * 0.68 || player.vy < 0) {
+                const shift = Math.max(0, (styleHeight * 0.68 - player.y) * delta * (1 + 0.12 * gameState.difficulty));
+                player.y += shift;
+                gameState.worldY += shift;
+                gameState.score = Math.floor(gameState.worldY);
+                gameState.height = Math.max(gameState.height, -Math.floor(gameState.worldY));
+
+                platforms.forEach(platform => {
+                    if (platform.type === 'movingY') {
+                        platform.baseY += shift;
+                    }
+                    platform.y += shift;
+                });
+                enemies.forEach(enemy => {
+                    enemy.y += shift;
+                });
+                powerups.forEach(powerup => {
+                    powerup.y += shift;
+                });
+            }
+
+            // Move dynamic platforms
+            platforms.forEach((platform) => {
+                if (platform.type === 'movingX') {
+                    platform.x += platform.speed * delta * platform.direction;
+                    if (platform.x <= platform.minX || platform.x >= platform.maxX) {
+                        platform.direction *= -1;
+                        platform.x = Math.max(platform.minX, Math.min(platform.maxX, platform.x));
+                    }
+                }
+                if (platform.type === 'movingY') {
+                    platform.y = platform.baseY + Math.sin(gameState.worldY * 0.004 * platform.speed) * platform.range;
+                }
+            });
+
+            // Move enemies and powerups
+            enemies.forEach((enemy) => {
+                // enemies stay static; move only with world offset (same as platforms)
+                if (player.x < enemy.x + enemy.w && player.x + player.w > enemy.x && player.y < enemy.y + enemy.h && player.y + player.h > enemy.y) {
+                    triggerGameOver('Hit enemy');
+                }
+            });
+
+            powerups.forEach((powerup, idx) => {
+                if (player.x < powerup.x + powerup.w && player.x + player.w > powerup.x && player.y < powerup.y + powerup.h && player.y + player.h > powerup.y) {
+                    player.vy = -1050;
+                    gameState.score += 16;
+                    powerups.splice(idx, 1);
+                    document.getElementById('message').textContent = 'Launch powerup collected!';
+                }
+            });
+
+            // Remove off-screen and add new platforms
+            for (let i = platforms.length - 1; i >= 0; i--) {
+                if (platforms[i].y > styleHeight + 30) {
+                    platforms.splice(i, 1);
+                }
+            }
+            const targetPlatformCount = 10 + Math.floor(gameState.difficulty * 2);
+            const specificGap = Math.max(45, Math.min(160, Math.floor(getMaxJumpGap() * 0.78)));
+            while (platforms.length < targetPlatformCount) {
+                const topPlatformY = platforms.reduce((min, p) => Math.min(min, p.y), styleHeight);
+                const gap = Math.max(45, specificGap - Math.floor(gameState.difficulty * 10));
+                platforms.push(createPlatform(topPlatformY - gap));
+            }
+
+            if (player.y > styleHeight + 50) {
+                gameState.running = false;
+                gameState.gameOver = true;
+                if (gameState.score > gameState.highest) {
+                    gameState.highest = gameState.score;
+                    localStorage.setItem('woodenJumpHighScore', gameState.highest);
+                }
+                actionBtn.textContent = 'Restart';
+            }
+
+            const difficultyName = gameState.difficulty < 1.5 ? 'Easy' : gameState.difficulty < 2.5 ? 'Medium' : gameState.difficulty < 5.5 ? 'Hard' : 'Insane';
+            scoreLabel.textContent = `Score: ${gameState.score}`;
+            heightLabel.textContent = `Height: ${Math.max(0, gameState.height)}`;
+            recordsLabel.textContent = `Highscore: ${gameState.highest}`;
+            document.getElementById('difficulty').textContent = `Difficulty: ${difficultyName} (${gameState.difficulty.toFixed(1)})`;
+        }
+
+        function draw() {
+            const cx = styleWidth / 2;
+            const gradient = ctx.createLinearGradient(0, 0, 0, styleHeight);
+            gradient.addColorStop(0, '#1f548d');
+            gradient.addColorStop(1, '#04112d');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, styleWidth, styleHeight);
+
+            // parallax cloud layer
+            for (const cloud of gameState.parallaxClouds) {
+                cloud.x -= cloud.speed * 0.017 * (0.7 + gameState.difficulty * 0.08);
+                if (cloud.x + cloud.w < 0) {
+                    cloud.x = styleWidth;
+                    cloud.y = Math.random() * styleHeight * 0.5;
+                }
+                ctx.fillStyle = `rgba(180, 210, 255, ${cloud.alpha})`;
+                ctx.fillRect(cloud.x, cloud.y, cloud.w, cloud.h);
+            }
+            // stars
+            for (const star of gameState.starField) {
+                star.y += star.speed * 0.02;
+                if (star.y > styleHeight) star.y = 0;
+                const opacity = 0.2 + 0.8 * Math.sin((star.y / styleHeight) * Math.PI);
+                ctx.fillStyle = `rgba(255,255,255,${opacity.toFixed(3)})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // platforms
+            const baseColor = gameState.difficulty < 1.5 ? '#6ee262' : gameState.difficulty < 2.5 ? '#f4db4a' : '#f2615f';
+            const highlight = gameState.difficulty < 1.5 ? '#d2ffe1' : gameState.difficulty < 2.5 ? '#fff5b5' : '#ffb1b0';
+            platforms.forEach(platform => {
+                if (platform.type === 'missing') return;
+                const x = platform.x;
+                const y = platform.y;
+
+                if (platform.type === 'breakable' && breakablePlatImg.complete) {
+                    ctx.drawImage(breakablePlatImg, x - 4, y - 6, platform.w + 8, platform.h + 12);
+                } else if (platformStickImg.complete) {
+                    ctx.drawImage(platformStickImg, x - 12, y - 8, platform.w + 24, platform.h + 16);
+                } else {
+                    ctx.fillStyle = baseColor;
+                    ctx.fillRect(x, y, platform.w, platform.h);
+                }
+
+                if (platform.type !== 'breakable') {
+                    ctx.fillStyle = highlight;
+                    ctx.fillRect(x + 4, y + 2, platform.w - 8, platform.h - 4);
+                }
+            });
+
+            // enemies
+            enemies.forEach(enemy => {
+                if (enemyImg.complete) {
+                    ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.w, enemy.h);
+                } else {
+                    ctx.fillStyle = '#d43333';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                }
+            });
+
+            // powerups
+            powerups.forEach(powerup => {
+                if (launchPowerupImg.complete) {
+                    ctx.drawImage(launchPowerupImg, powerup.x, powerup.y, powerup.w, powerup.h);
+                } else {
+                    ctx.fillStyle = '#edff2d';
+                    ctx.fillRect(powerup.x, powerup.y, powerup.w, powerup.h);
+                }
+            });
+
+            // predicted arc indicator
+            const futureFrames = 12;
+            let prevX = player.x + player.w/2;
+            let prevY = player.y + player.h/2;
+            let simX = player.x + player.w/2;
+            let simY = player.y + player.h/2;
+            let simVx = player.vx;
+            let simVy = player.vy;
+            for (let i = 0; i < futureFrames; i++) {
+                simVx *= 0.996;
+                simVy += gameState.gravity * (1/60);
+                simX += simVx * (1/60);
+                simY += simVy * (1/60);
+                ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                ctx.beginPath();
+                ctx.moveTo(prevX, prevY);
+                ctx.lineTo(simX, simY);
+                ctx.stroke();
+                prevX = simX;
+                prevY = simY;
+            }
+
+            // player
+            const ballSize = player.w;
+            if (playerImg.complete) {
+                ctx.save();
+                ctx.translate(player.x + ballSize / 2, player.y + ballSize / 2);
+                ctx.rotate(player.angle);
+                ctx.drawImage(playerImg, -ballSize / 2, -ballSize / 2, ballSize, ballSize);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = '#caffff';
+                ctx.beginPath();
+                ctx.arc(player.x + ballSize / 2, player.y + ballSize / 2, ballSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ground helper
+            ctx.fillStyle = 'rgba(122, 189, 255, 0.08)';
+            ctx.fillRect(0, styleHeight - 2, styleWidth, 2);
+
+            if (gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(0, 0, styleWidth, styleHeight);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 36px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over', cx, styleHeight * 0.4);
+                ctx.font = 'bold 20px Segoe UI';
+                ctx.fillText('Press Restart to try again', cx, styleHeight * 0.5);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameState.running) {
+                draw();
+                return;
+            }
+            const delta = Math.min(0.033, (timestamp - gameState.lastTime) / 1000);
+            gameState.lastTime = timestamp;
+
+            update(delta);
+            draw();
+
+            if (!gameState.gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (/^(ArrowLeft|KeyA)$/.test(e.code)) gameState.keys.left = true;
+            if (/^(ArrowRight|KeyD)$/.test(e.code)) gameState.keys.right = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (/^(ArrowLeft|KeyA)$/.test(e.code)) gameState.keys.left = false;
+            if (/^(ArrowRight|KeyD)$/.test(e.code)) gameState.keys.right = false;
+        });
+
+        actionBtn.addEventListener('click', () => {
+            resetGame();
+        });
+
+        // preload image to avoid startup jitter
+        const preload = [playerImg, platformStickImg];
+        let loadedCount = 0;
+        preload.forEach(img => {
+            img.onload = () => {
+                loadedCount += 1;
+                if (loadedCount === preload.length) draw();
+            };
+            img.onerror = () => draw();
+        });
+
+        if (gameState.highest) recordsLabel.textContent = `Highscore: ${gameState.highest}`;
+        draw();
+    </script>
+</body>
+</html>
