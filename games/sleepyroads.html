@@ -112,7 +112,7 @@
         <div id="score">Distance: 0</div>
         <div id="sleepiness">Sleepiness: 0</div>
         <canvas id="sleepyroads" width="800" height="600"></canvas>
-        <div class="info-text">Use A/D to steer · Space to stay awake · Collect energy drinks!</div>
+        <div class="info-text">Use A/D to steer · Collect energy drinks!</div>
     </div>
     
     <div id="gameOver">
@@ -142,7 +142,12 @@
             height: 80,
             dx: 0,
             acceleration: 0.5,
-            maxSpeed: 5
+            maxSpeed: 5,
+            lastSteer: 0, // -1 left, 1 right, 0 none
+            drift: 0,
+            steerInput: 0, // -1, 0, 1 (last key pressed wins)
+            lastSteerPressed: 0,
+            steerAccel: 0.4
         };
 
         // Road lines
@@ -166,7 +171,10 @@
         obstacleImg.src = '../images/sleepy_obstacle.png'; // Maybe a pillow or something sleepy
 
         const energyImg = new Image();
-        energyImg.src = '../images/energy_drink.png'; // Energy drink image
+        energyImg.src = '../images/whitemonster.png'; // Energy drink image
+
+        const movingCarImg = new Image();
+        movingCarImg.src = '../images/moving_car.png'; // Rare moving cars (different image)
 
         // Draw car
         function drawCar() {
@@ -186,7 +194,8 @@
         // Draw obstacles
         function drawObstacles() {
             obstacles.forEach(obstacle => {
-                ctx.drawImage(obstacleImg, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                const img = obstacle.type === 'moving' ? movingCarImg : obstacleImg;
+                ctx.drawImage(img, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
             });
         }
 
@@ -209,20 +218,41 @@
 
         // Update obstacles
         function updateObstacles() {
+            // regular sleepy hallucination obstacles
             if (Math.random() < 0.02) {
                 obstacles.push({
                     x: Math.random() * (canvas.width - 50),
                     y: -50,
                     width: 50,
-                    height: 50
+                    height: 50,
+                    dy: obstacleSpeed,
+                    type: 'static'
                 });
             }
+
+            // rare moving cars that drive down the screen (spawn at top)
+            if (Math.random() < 0.005) {
+                const speed = obstacleSpeed + 1 + Math.random() * 1.5; // a bit faster/slower randomly
+                obstacles.push({
+                    x: Math.random() * (canvas.width - car.width),
+                    y: -car.height,
+                    width: car.width,
+                    height: car.height,
+                    dy: speed,
+                    type: 'moving'
+                });
+            }
+
             obstacles.forEach((obstacle, index) => {
-                obstacle.y += obstacleSpeed;
-                if (obstacle.y > canvas.height) {
+                obstacle.y += (typeof obstacle.dy === 'number') ? obstacle.dy : obstacleSpeed;
+
+                // remove obstacles that leave screen bounds
+                if (obstacle.y > canvas.height + 100 || obstacle.y < -120) {
                     obstacles.splice(index, 1);
-                    distance += 10;
+                    // only count distance for objects that passed off the bottom
+                    if (obstacle.y > canvas.height + 100) distance += 10;
                 }
+
                 // Collision detection
                 if (car.x < obstacle.x + obstacle.width &&
                     car.x + car.width > obstacle.x &&
@@ -261,26 +291,64 @@
 
         // Update car
         function updateCar() {
-            // Apply acceleration based on input
-            if (car.inputLeft) {
-                car.dx -= car.acceleration;
-            }
-            if (car.inputRight) {
-                car.dx += car.acceleration;
+            // Steering uses last-key-wins `steerInput` and accelerates toward a target lateral speed.
+            const steeringTarget = car.steerInput * car.maxSpeed;
+            const steerAcc = car.steerAccel;
+
+            if (car.dx < steeringTarget) {
+                car.dx = Math.min(car.dx + steerAcc, steeringTarget);
+            } else if (car.dx > steeringTarget) {
+                car.dx = Math.max(car.dx - steerAcc, steeringTarget);
             }
 
-            // Apply friction (less friction = more slippery when sleepier)
-            let friction = 0.9 - (sleepiness / 200); // Higher sleepiness = lower friction (more sliding)
-            if (friction < 0.5) friction = 0.5; // Minimum friction
-            car.dx *= friction;
+            // Update lastSteer for drift bias (use steerInput when steering, otherwise keep previous)
+            if (car.steerInput !== 0) car.lastSteer = car.steerInput;
+
+            // Momentum decay: slower decay when sleepier (decay multiplier closer to 1)
+            const sleepFactor = Math.min(1, sleepiness / maxSleepiness); // 0..1
+            let decay = 0.94 + 0.05 * sleepFactor; // ranges ~0.94 -> 0.99
+            if (decay > 0.995) decay = 0.995;
+            car.dx *= decay;
+
+            // Drift behavior: grows with sleepiness when not actively steering
+            if (car.steerInput === 0) {
+                if (car.lastSteer === 0) car.lastSteer = Math.random() > 0.5 ? 1 : -1;
+                const grow = 0.02 * (1 + 3 * sleepFactor);
+                car.drift += car.lastSteer * grow;
+                car.drift += (Math.random() - 0.5) * 0.01 * (1 + sleepFactor * 1.5);
+            } else {
+                // actively steering nudges drift back toward zero
+                car.drift += -car.steerInput * 0.02;
+                car.drift *= 0.9;
+            }
+
+            // Drift decay: faster when alert, slower when sleepy
+            const driftDecay = 0.82 + 0.16 * sleepFactor; // 0.82 -> 0.98
+            car.drift *= driftDecay;
+
+            // Limit maximum drift
+            const maxDrift = 0.15 + 0.6 * sleepFactor; // 0.15 -> 0.75
+            if (car.drift > maxDrift) car.drift = maxDrift;
+            if (car.drift < -maxDrift) car.drift = -maxDrift;
+
+            // Apply drift to lateral velocity
+            car.dx += car.drift;
 
             // Clamp speed
             if (car.dx > car.maxSpeed) car.dx = car.maxSpeed;
             if (car.dx < -car.maxSpeed) car.dx = -car.maxSpeed;
 
             car.x += car.dx;
-            if (car.x < 0) car.x = 0;
-            if (car.x + car.width > canvas.width) car.x = canvas.width - car.width;
+            if (car.x < 0) {
+                car.x = 0;
+                car.dx = 0;
+                car.drift = 0;
+            }
+            if (car.x + car.width > canvas.width) {
+                car.x = canvas.width - car.width;
+                car.dx = 0;
+                car.drift = 0;
+            }
         }
 
         // Update sleepiness
@@ -334,13 +402,14 @@
                 case 'a':
                 case 'A':
                     car.inputLeft = true;
+                    car.lastSteerPressed = -1;
+                    car.steerInput = -1;
                     break;
                 case 'd':
                 case 'D':
                     car.inputRight = true;
-                    break;
-                case ' ': // Space to stay awake (reduces sleepiness slightly)
-                    sleepiness = Math.max(0, sleepiness - 5);
+                    car.lastSteerPressed = 1;
+                    car.steerInput = 1;
                     break;
             }
         });
@@ -350,17 +419,36 @@
                 case 'a':
                 case 'A':
                     car.inputLeft = false;
+                    if (car.lastSteerPressed === -1) {
+                        // if other key is still held, switch to that; otherwise stop steering
+                        if (car.inputRight) {
+                            car.lastSteerPressed = 1;
+                            car.steerInput = 1;
+                        } else {
+                            car.lastSteerPressed = 0;
+                            car.steerInput = 0;
+                        }
+                    }
                     break;
                 case 'd':
                 case 'D':
                     car.inputRight = false;
+                    if (car.lastSteerPressed === 1) {
+                        if (car.inputLeft) {
+                            car.lastSteerPressed = -1;
+                            car.steerInput = -1;
+                        } else {
+                            car.lastSteerPressed = 0;
+                            car.steerInput = 0;
+                        }
+                    }
                     break;
             }
         });
 
         // Start game when images load
         let imagesLoaded = 0;
-        const totalImages = 3;
+        const totalImages = 4;
 
         function checkImagesLoaded() {
             imagesLoaded++;
@@ -372,6 +460,7 @@
         carImg.onload = checkImagesLoaded;
         obstacleImg.onload = checkImagesLoaded;
         energyImg.onload = checkImagesLoaded;
+        movingCarImg.onload = checkImagesLoaded;
     </script>
 </body>
 </html>
