@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Beaurio</title>
+    <title>Bogo Stick Bros</title>
     <style>
         body {
             margin: 0;
@@ -12,12 +12,121 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #87CEEB;
-            font-family: Arial, sans-serif;
+            background-color: #0a0e27;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+        }
+        .container-fluid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 980px;
+            padding: 20px;
+            box-sizing: border-box;
         }
         canvas {
-            border: 2px solid #333;
+            border: 3px solid #4a9eff;
             background-color: #87CEEB;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+            border-radius: 4px;
+        }
+        #titleScreen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 14, 39, 0.95);
+            z-index: 100;
+        }
+        #titleScreen .title-card {
+            width: min(420px, calc(100% - 40px));
+            padding: 36px 28px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
+            border: 3px solid #4a9eff;
+            border-radius: 14px;
+            box-shadow: 0 0 30px rgba(74, 158, 255, 0.4);
+            text-align: center;
+        }
+        #titleScreen h1 {
+            margin: 0 0 18px;
+            font-size: 2rem;
+            color: #4a9eff;
+        }
+        #titleScreen p {
+            margin: 0 0 28px;
+            color: #8a8a8a;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        #titleScreen button {
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #titleScreen button:hover {
+            background-color: #6bb3ff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
+        }
+        .character-select {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .character-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 20px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .character-option:hover {
+            border-color: #4a9eff;
+            background-color: rgba(74, 158, 255, 0.1);
+        }
+        .character-option img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            pointer-events: none;
+        }
+        .character-option p {
+            margin: 0;
+            color: #4a9eff;
+            font-weight: 600;
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background-color: #6bb3ff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
         }
         #gameOverScreen {
             display: none;
@@ -40,35 +149,76 @@
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <div id="gameOverScreen">
-        <h1 style="padding-right: 10px;">Game Over!</h1>
-        <button onclick="location.reload()">Play Again</button>
+    <div id="titleScreen">
+        <div class="title-card">
+            <h1>Choose Your Character</h1>
+            <p>Select your pogo stick to start the game.</p>
+            <div class="character-select">
+                <div class="character-option" id="bogoOption">
+                    <img src="../images/bogostick.png" alt="Bogo Stick" />
+                    <p>Bogo Stick</p>
+                </div>
+                <div class="character-option" id="eliOption">
+                    <img src="../images/eligostick.png" alt="Eli Go Stick" />
+                    <p>Eli Go Stick</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <a href="../index.html" class="back-button">← Back</a>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div id="gameOverScreen">
+            <h1 style="padding-right: 10px;">Game Over!</h1>
+            <button onclick="location.reload()">Play Agtain</button>
+        </div>
     </div>
 
     <script>
+        const playerImage = new Image();
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameOverScreen = document.getElementById('gameOverScreen');
+        const titleScreen = document.getElementById('titleScreen');
+        const bogoOption = document.getElementById('bogoOption');
+        const eliOption = document.getElementById('eliOption');
 
         // Player object
         const player = {
             x: 50,
-            y: canvas.height - 80,
-            width: 30,
-            height: 40,
+            y: canvas.height - 140,
+            width: 60,
+            height: 80,
             velocityY: 0,
             jumping: false,
             speed: 5
         };
 
+        // Player sprite
+        // playerImage defined above
+
         // Game variables
         let obstacles = [];
-        let gameRunning = true;
+        let gameRunning = false;
         let distanceTraveled = 0;
         const gravity = 0.6;
         const jumpPower = 12;
-        const groundLevel = canvas.height - 80;
+        const groundLevel = canvas.height - 140;
+
+        function selectBogo() {
+            playerImage.src = '../images/bogostick.png';
+            titleScreen.style.display = 'none';
+            gameRunning = true;
+            draw();
+        }
+
+        function selectEli() {
+            playerImage.src = '../images/eligostick.png';
+            titleScreen.style.display = 'none';
+            gameRunning = true;
+            draw();
+        }
 
         // Keyboard input
         const keys = {};
@@ -83,7 +233,7 @@
         class Obstacle {
             constructor(x) {
                 this.x = x;
-                this.y = groundLevel + 10;
+                this.y = groundLevel + 30;
                 this.width = 30;
                 this.height = 50;
             }
@@ -100,7 +250,15 @@
 
         // Spawn obstacles
         function spawnObstacle() {
-            if (gameRunning && Math.random() < 0.02) {
+            if (!gameRunning) {
+                return;
+            }
+
+            const minSpacing = player.width;
+            const lastObstacle = obstacles[obstacles.length - 1];
+            const hasRoom = !lastObstacle || canvas.width - (lastObstacle.x + lastObstacle.width) >= minSpacing;
+
+            if (hasRoom && Math.random() < 0.02) {
                 obstacles.push(new Obstacle(canvas.width));
             }
         }
@@ -164,11 +322,10 @@
 
             // Draw ground
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(0, groundLevel + 40, canvas.width, 60);
+            ctx.fillRect(0, groundLevel + 80, canvas.width, 60);
 
             // Draw player
-            ctx.fillStyle = '#FF0000';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
             // Draw obstacles
             obstacles.forEach(obs => obs.draw());
@@ -197,6 +354,9 @@
             draw();
             requestAnimationFrame(gameLoop);
         }
+
+        bogoOption.addEventListener('click', selectBogo);
+        eliOption.addEventListener('click', selectEli);
 
         gameLoop();
     </script>
