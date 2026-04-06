@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -69,30 +69,16 @@
 
         .grid {
             display: grid;
-            grid-template-columns: 1.6fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
             margin-top: 1rem;
         }
 
-        .click-panel, .right-panel {
+        .stats, .controls {
             border: 1px solid rgba(255,255,255,0.14);
             border-radius: 14px;
             background: rgba(5, 14, 45, 0.85);
             padding: 1rem;
-        }
-
-        .click-panel {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 460px;
-        }
-
-        .stats, .controls {
-            border: none;
-            background: transparent;
-            padding: 0;
         }
 
         .stat-item {
@@ -120,19 +106,16 @@
         }
 
         #cookieImage {
-            width: min(420px, 75vw);
-            height: min(420px, 75vw);
-            max-width: 420px;
-            max-height: 420px;
+            width: min(220px, 50vw);
+            max-width: 260px;
             border: 10px solid rgba(255,223,150,0.35);
-            box-shadow: 0 0 28px rgba(255, 235, 154, 0.52);
-            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(255, 235, 154, 0.45);
+            border-radius: 16px;
             background: linear-gradient(145deg, #ffd27e, #fab84f);
             cursor: pointer;
             transform: perspective(120px) rotateX(0deg);
             transition: transform 0.12s ease, filter .15s;
             user-select: none;
-            object-fit: cover;
         }
 
         #cookieImage:active {
@@ -221,28 +204,25 @@
         <main class="game-card">
             <div class="game-header">
                 <h1 class="game-title">Franklin Clicker</h1>
-                <a class="back-button" href="../index.html">← Back to Games</a>
+                <a class="back-button" href="../index.html"> Back to Games</a>
+            </div>
+
+            <div class="cookie-area">
+                <img id="cookieImage" src="../images/FranklinClicker.png" alt="Franklin Cookie" title="Click Franklin!" />
+                <div class="cookie-hit">Click Franklin or press [SPACE] for coins!</div>
             </div>
 
             <div class="grid">
-                <section class="click-panel">
-                    <div class="cookie-area">
-                        <img id="cookieImage" src="../images/frankie.png" alt="Frankie Cookie" title="Click Franklin!" />
-                        <div class="cookie-hit">Click Franklin for coins!</div>
-                    </div>
+                <section class="stats">
+                    <div class="stat-item"><span>Coins</span><strong id="coinCount">0</strong></div>
+                    <div class="stat-item"><span>Click Value</span><strong id="clickValue">1</strong>x</div>
+                    <div class="stat-item"><span>Auto Clickers</span><strong id="autoClickers">0</strong></div>
+                    <div class="stat-item"><span>Per Second</span><strong id="currentCPS">0</strong></div>
+                    <div class="stat-item"><span>Auto cost</span><strong id="autoCost">50</strong></div>
+                    <div class="stat-item"><span>Mult cost</span><strong id="multiCost">100</strong></div>
                 </section>
 
-                <section class="right-panel">
-                    <section class="stats">
-                        <div class="stat-item"><span>Coins</span><strong id="coinCount">0</strong></div>
-                        <div class="stat-item"><span>Click Value</span><strong id="clickValue">1x</strong></div>
-                        <div class="stat-item"><span>Auto Clickers</span><strong id="autoClickers">0</strong></div>
-                        <div class="stat-item"><span>Per Second</span><strong id="currentCPS">0</strong></div>
-                        <div class="stat-item"><span>Auto cost</span><strong id="autoCost">50</strong></div>
-                        <div class="stat-item"><span>Mult cost</span><strong id="multiCost">100</strong></div>
-                    </section>
-
-                    <section class="controls">
+                <section class="controls">
                     <div class="upgrades">
                         <div class="upgrade-card">
                             <div>
@@ -309,7 +289,7 @@
 
         function updateUI() {
             refs.coinCount.textContent = Math.floor(state.coins);
-            refs.clickValue.textContent = state.clickValue + 'x';
+            refs.clickValue.textContent = state.clickValue;
             refs.autoClickers.textContent = state.autoClickers;
             state.cps = state.autoClickers * state.clickValue;
             refs.currentCPS.textContent = state.cps;
@@ -319,8 +299,6 @@
             refs.buyMult.disabled = state.coins < state.multiCost;
             refs.buyAuto.style.opacity = refs.buyAuto.disabled ? .6 : 1;
             refs.buyMult.style.opacity = refs.buyMult.disabled ? .6 : 1;
-            refs.buyAuto.textContent = `Buy Auto Clicker (${state.autoCost} coins)`;
-            refs.buyMult.textContent = `Buy Multiplier (${state.multiCost} coins)`;
         }
 
         function showMessage(text) {
@@ -344,6 +322,13 @@
         refs.cookieImage.addEventListener('click', () => {
             triggerClick();
             showMessage('+ ' + state.clickValue + ' coins');
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                triggerClick();
+            }
         });
 
         refs.buyAuto.addEventListener('click', () => {
