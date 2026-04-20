@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Franklin's Wing Shack</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(180deg, #060b1f 0%, #091536 100%);
+            min-height: 100vh;
+            color: #e9f2ff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .page-card {
+            background: rgba(5, 12, 32, 0.94);
+            border: 1px solid rgba(120, 210, 255, 0.25);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .page-title {
+            color: #a5d9ff;
+        }
+        .stat-badge {
+            background: rgba(22, 55, 110, 0.9);
+            border: 1px solid rgba(126, 214, 255, 0.2);
+            color: #d9ecff;
+        }
+        .btn-fryer {
+            background: #ffb347;
+            border-color: #ffb347;
+            color: #0f172a;
+        }
+        .btn-fryer:hover {
+            background: #ffc76c;
+            border-color: #ffc76c;
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+        .status-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(126, 214, 255, 0.16);
+        }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" class="btn btn-sm btn-primary back-button">← Back</a>
+
+    <div class="container py-5">
+        <div class="page-card rounded-4 p-4 mx-auto" style="max-width: 940px;">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
+                <div>
+                    <h1 class="page-title mb-2">Franklin's Wing Shack</h1>
+                    <p class="text-muted mb-0">Customers arrive automatically. Click the fryer to cook wings, then serve the order.</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2 text-end">
+                    <span class="badge stat-badge py-2 px-3">Money: $<span id="money">0</span></span>
+                    <span class="badge stat-badge py-2 px-3">Served: <span id="served">0</span></span>
+                </div>
+            </div>
+
+            <div id="message" class="alert alert-primary rounded-4 mb-4">Waiting for the first customer...</div>
+
+            <div class="row g-4">
+                <div class="col-12 col-lg-6">
+                    <div class="card status-card rounded-4 p-4 h-100">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <img id="orderImg" src="../../images/badguy.png" alt="Customer" class="rounded-circle shadow-sm" style="width: 72px; display:none;">
+                            <div>
+                                <h3 class="h5 text-white mb-1">Order</h3>
+                                <p id="orderDisplay" class="fs-6 text-muted mb-0">No customer</p>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="h6 text-white mb-2">Fryer Status</h4>
+                            <p id="cookDisplay" class="text-muted mb-2">Empty</p>
+                            <div class="progress" style="height: 24px;">
+                                <div id="cookProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="h6 text-white mb-2">Delivery</h4>
+                            <p id="deliverDisplay" class="text-muted mb-0">Delivered 0 / 0 wings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="card status-card rounded-4 p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <h3 class="h5 text-white mb-3">Actions</h3>
+                            <button id="cookButton" class="btn btn-fryer btn-lg w-100 mb-3">Cook Wing</button>
+                            <button id="serveButton" class="btn btn-success btn-lg w-100" disabled>Serve Order</button>
+                        </div>
+                        <p id="serveDisplay" class="text-muted mt-4 mb-0">A customer will appear shortly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <img src="../../images/ball.png" alt="Wings" class="img-fluid" style="max-width: 120px; opacity: 0.85;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const moneyEl = document.getElementById('money');
+        const servedEl = document.getElementById('served');
+        const messageEl = document.getElementById('message');
+        const orderImg = document.getElementById('orderImg');
+        const orderDisplay = document.getElementById('orderDisplay');
+        const cookDisplay = document.getElementById('cookDisplay');
+        const deliverDisplay = document.getElementById('deliverDisplay');
+        const cookProgress = document.getElementById('cookProgress');
+        const serveDisplay = document.getElementById('serveDisplay');
+        const cookButton = document.getElementById('cookButton');
+        const serveButton = document.getElementById('serveButton');
+
+        let money = 50;
+        let served = 0;
+        let currentOrder = null;
+        let cooked = 0;
+        let customerTimer = null;
+
+        function updateHUD() {
+            moneyEl.textContent = money;
+            servedEl.textContent = served;
+        }
+
+        function resetOrder() {
+            currentOrder = null;
+            cooked = 0;
+            orderDisplay.textContent = 'No customer';
+            cookDisplay.textContent = 'Empty';
+            deliverDisplay.textContent = 'Delivered 0 / 0 wings';
+            cookProgress.style.width = '0%';
+            cookProgress.textContent = '0%';
+            serveButton.disabled = true;
+            orderImg.style.display = 'none';
+            serveDisplay.textContent = 'Waiting for a customer...';
+            messageEl.textContent = 'A customer will arrive soon.';
+        }
+
+        function spawnCustomer() {
+            if (currentOrder) return;
+            const wings = Math.floor(Math.random() * 6) + 3;
+            currentOrder = { wings };
+            cooked = 0;
+            orderDisplay.textContent = `${wings} wings`;
+            cookDisplay.textContent = `Cooking 0 / ${wings}`;
+            deliverDisplay.textContent = `Delivered 0 / ${wings} wings`;
+            orderImg.src = '../../images/badguy.png';
+            orderImg.style.display = 'block';
+            cookProgress.style.width = '0%';
+            cookProgress.textContent = '0%';
+            serveButton.disabled = true;
+            serveDisplay.textContent = 'Click the fryer to cook each wing.';
+            messageEl.textContent = 'A customer showed up! Cook their wings and then serve the order.';
+        }
+
+        function cookWing() {
+            if (!currentOrder) {
+                messageEl.textContent = 'No customer yet. Wait for the next order.';
+                return;
+            }
+            if (cooked >= currentOrder.wings) {
+                messageEl.textContent = 'All wings are cooked. Serve the order now.';
+                return;
+            }
+            cooked += 1;
+            const percent = Math.round((cooked / currentOrder.wings) * 100);
+            cookDisplay.textContent = `Cooking ${cooked} / ${currentOrder.wings}`;
+            deliverDisplay.textContent = `Delivered ${cooked} / ${currentOrder.wings} wings`;
+            cookProgress.style.width = `${percent}%`;
+            cookProgress.textContent = `${percent}%`;
+            if (cooked >= currentOrder.wings) {
+                serveButton.disabled = false;
+                messageEl.textContent = 'Ready! Hit Serve to complete the order.';
+            } else {
+                messageEl.textContent = 'Keep cooking until the order is complete.';
+            }
+        }
+
+        function serveOrder() {
+            if (!currentOrder) {
+                messageEl.textContent = 'There is no order to serve.';
+                return;
+            }
+            if (cooked < currentOrder.wings) {
+                messageEl.textContent = 'The wings are not fully cooked yet.';
+                return;
+            }
+            const earned = currentOrder.wings * 2;
+            money += earned;
+            served += 1;
+            messageEl.textContent = `Served ${currentOrder.wings} wings and earned $${earned}.`;
+            updateHUD();
+            resetOrder();
+            scheduleNextCustomer();
+        }
+
+        function scheduleNextCustomer() {
+            if (customerTimer) clearTimeout(customerTimer);
+            customerTimer = setTimeout(spawnCustomer, 2500 + Math.random() * 2500);
+        }
+
+        cookButton.addEventListener('click', cookWing);
+        serveButton.addEventListener('click', serveOrder);
+
+        updateHUD();
+        resetOrder();
+        scheduleNextCustomer();
+    </script>
+</body>
+</html>
