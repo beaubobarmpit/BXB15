@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Students on the Bus</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #0a0e27;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+            background-image: radial-gradient(circle at 20% 15%, rgba(255,255,255,0.12) 0%, transparent 35%),
+                              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.07) 0%, transparent 35%),
+                              radial-gradient(circle at 50% 80%, rgba(1,59,152,0.18) 0%, transparent 40%);
+        }
+        .container-fluid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 16px;
+            width: min(1040px, 100%);
+            padding: 20px;
+        }
+        .game-window {
+            width: 100%;
+            border: 3px solid #4a9eff;
+            border-radius: 12px;
+            background: rgba(2, 15, 40, 0.95);
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.25);
+            padding: 26px;
+        }
+        .game-title {
+            margin: 0 0 12px;
+            font-size: clamp(1.9rem, 3vw, 2.8rem);
+            color: #ffdd7f;
+            text-shadow: 0 0 14px rgba(255, 220, 123, 0.6);
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 18px;
+            background-color: #4a9eff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 5px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.35);
+            z-index: 100;
+        }
+        .back-button:hover {
+            background-color: #6bb3ff;
+        }
+        .description {
+            margin: 0 0 24px;
+            line-height: 1.6;
+            color: #c1d8ff;
+        }
+        .bus-area {
+            position: relative;
+            background: url("../images/schoobus (2).png") center / contain no-repeat;
+            background-color: #ffd54f;
+            border-radius: 28px;
+            min-height: 340px;
+            overflow: hidden;
+            margin: 0 auto 24px;
+            max-width: 100%;
+        }
+        .bus-area::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.08);
+            pointer-events: none;
+        }
+        .student {
+            position: absolute;
+            width: 62px;
+            height: 62px;
+            display: grid;
+            place-items: center;
+            font-size: 2.2rem;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .student.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .student.hide {
+            opacity: 0;
+            transform: scale(0.6);
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .controls input[type="number"] {
+            width: 120px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 2px solid #566f98;
+            background: rgba(255,255,255,0.08);
+            color: #f8fbff;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .controls button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #73d0ff, #1979cc);
+            color: #0a0e27;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .controls button:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #8ad1ff, #4a9eff);
+        }
+        .status {
+            font-size: 1.05rem;
+            min-height: 1.5rem;
+            margin-top: 8px;
+            color: #dbe7ff;
+        }
+        .footer {
+            margin-top: 22px;
+            font-size: 0.95rem;
+            color: #9fb8d7;
+        }
+        .hidden { display: none; }
+        @media (max-width: 860px) {
+            .container-fluid { padding: 12px; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-button">← Back</a>
+    <div class="container-fluid">
+        <div class="game-window">
+            <h1 class="game-title">Students on the Bus</h1>
+            <p class="description">Watch carefully: a random number of students will appear on the bus for a moment. When they disappear, type how many you saw.</p>
+
+            <div class="bus-area" id="busArea" aria-label="Bus with student seats"></div>
+
+            <div class="controls">
+                <button id="startButton">Start Round</button>
+                <input id="answerInput" type="number" min="0" placeholder="How many?" disabled>
+                <button id="submitButton" disabled>Submit</button>
+                <button id="againButton" class="hidden">Play Again</button>
+            </div>
+            <div class="status" id="statusText">Press Start to begin.</div>
+            <div class="footer">Hint: students only appear for a short time, then vanish. Count them quickly!</div>
+        </div>
+    </div>
+
+    <script>
+        const busArea = document.getElementById('busArea');
+        const startButton = document.getElementById('startButton');
+        const submitButton = document.getElementById('submitButton');
+        const againButton = document.getElementById('againButton');
+        const answerInput = document.getElementById('answerInput');
+        const statusText = document.getElementById('statusText');
+
+        let correctCount = 0;
+        let roundActive = false;
+
+        const windowPositions = [
+            { left: '7%', top: '22%' },
+            { left: '14%', top: '22%' },
+            { left: '24%', top: '22%' },
+            { left: '30%', top: '22%' },
+            { left: '36%', top: '22%' },
+            { left: '42%', top: '22%' },
+            { left: '48%', top: '22%' },
+            { left: '54%', top: '22%' },
+            { left: '60%', top: '22%' },
+            { left: '66%', top: '22%' }
+        ];
+
+        function createStudent(position) {
+            const student = document.createElement('div');
+            student.className = 'student show';
+            student.style.left = position.left;
+            student.style.top = position.top;
+            student.textContent = '🧑‍🎓';
+            return student;
+        }
+
+        function clearBus() {
+            busArea.querySelectorAll('.student').forEach(node => node.remove());
+        }
+
+        function setControls(startEnabled, answerEnabled, submitEnabled, againVisible) {
+            startButton.disabled = !startEnabled;
+            answerInput.disabled = !answerEnabled;
+            submitButton.disabled = !submitEnabled;
+            againButton.classList.toggle('hidden', !againVisible);
+        }
+
+        function startRound() {
+            clearBus();
+            answerInput.value = '';
+            answerInput.disabled = true;
+            submitButton.disabled = true;
+            againButton.classList.add('hidden');
+            roundActive = true;
+
+            let studentCount = 0;
+            statusText.textContent = 'Remember how many students appear...';
+            setControls(false, false, false, false);
+
+            windowPositions.forEach(position => {
+                const chance = 100 //70 - 7.5 * studentCount;
+                if (Math.random() * 100 < chance) {
+                    studentCount += 1;
+                    const student = createStudent(position);
+                    busArea.appendChild(student);
+                }
+            });
+            correctCount = studentCount;
+
+            setTimeout(() => {
+                busArea.querySelectorAll('.student').forEach(student => {
+                    student.classList.remove('show');
+                    student.classList.add('hide');
+                });
+                setTimeout(() => {
+                    clearBus();
+                    statusText.textContent = 'Type the number of students you saw.';
+                    answerInput.disabled = false;
+                    submitButton.disabled = false;
+                    answerInput.focus();
+                    setControls(false, true, true, false);
+                }, 220);
+            }, 1200);
+        }
+
+        function submitAnswer() {
+            if (!roundActive) return;
+            const value = Number(answerInput.value);
+            if (!Number.isInteger(value) || value < 0) {
+                statusText.textContent = 'Please enter a whole number.';
+                return;
+            }
+            roundActive = false;
+            if (value === correctCount) {
+                statusText.textContent = `Great job! There were ${correctCount} students on the bus.`;
+            } else {
+                statusText.textContent = `Not quite. There were ${correctCount} students, but you guessed ${value}.`;
+            }
+            setControls(true, true, false, true);
+        }
+
+        startButton.addEventListener('click', startRound);
+        submitButton.addEventListener('click', submitAnswer);
+        againButton.addEventListener('click', startRound);
+        answerInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !submitButton.disabled) {
+                submitAnswer();
+            }
+        });
+    </script>
+</body>
+</html>
