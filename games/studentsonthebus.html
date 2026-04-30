@@ -84,10 +84,8 @@
             position: absolute;
             width: 62px;
             height: 62px;
-            display: grid;
-            place-items: center;
-            font-size: 2.2rem;
             transition: transform 0.2s ease, opacity 0.2s ease;
+            object-fit: contain;
         }
         .student.show {
             opacity: 1;
@@ -135,6 +133,12 @@
             margin-top: 8px;
             color: #dbe7ff;
         }
+        .streak {
+            font-size: 1.05rem;
+            min-height: 1.5rem;
+            margin-top: 8px;
+            color: #dbe7ff;
+        }
         .footer {
             margin-top: 22px;
             font-size: 0.95rem;
@@ -163,6 +167,7 @@
                 <button id="againButton" class="hidden">Play Again</button>
             </div>
             <div class="status" id="statusText">Press Start to begin.</div>
+            <div class="streak" id="streakText">Current Streak: 0 | Longest Streak: 0</div>
             <div class="footer">Hint: students only appear for a short time, then vanish. Count them quickly!</div>
         </div>
     </div>
@@ -175,28 +180,46 @@
         const answerInput = document.getElementById('answerInput');
         const statusText = document.getElementById('statusText');
 
+        let currentStreak = 0;
+        let longestStreak = 0;
+        const streakText = document.getElementById('streakText');
+
+        function updateStreakDisplay() {
+            streakText.textContent = `Current Streak: ${currentStreak} | Longest Streak: ${longestStreak}`;
+        }
+
         let correctCount = 0;
         let roundActive = false;
 
         const windowPositions = [
             { left: '7%', top: '22%' },
             { left: '14%', top: '22%' },
-            { left: '24%', top: '22%' },
-            { left: '30%', top: '22%' },
-            { left: '36%', top: '22%' },
-            { left: '42%', top: '22%' },
-            { left: '48%', top: '22%' },
+            { left: '21%', top: '22%' },
+            { left: '27%', top: '22%' },
+            { left: '34%', top: '22%' },
+            { left: '41%', top: '22%' },
+            { left: '47%', top: '22%' },
             { left: '54%', top: '22%' },
-            { left: '60%', top: '22%' },
-            { left: '66%', top: '22%' }
+            { left: '62%', top: '22%' },
+            { left: '73%', top: '18%' }
         ];
 
-        function createStudent(position) {
-            const student = document.createElement('div');
+        const studentImages = ['BoOnDaBus.png', 'DeacOnDaBus.png', 'JesseOnDaBus.png', 'MadsOnDaBus.png', 'MatthewOnDaBus.png', 'MegaTOnDaBus.png', 'SamBOnDaBus.png', 'SamLOnDaBus.png', 'XOnDaBus.JPG'];
+        const driverImage = 'BusDriverWoody.png';
+
+        function createStudent(position, index) {
+            const student = document.createElement('img');
             student.className = 'student show';
             student.style.left = position.left;
             student.style.top = position.top;
-            student.textContent = '🧑‍🎓';
+            let imageName;
+            if (index === 9) {
+                imageName = driverImage;
+            } else {
+                imageName = studentImages[index];
+            }
+            student.src = '../images/' + imageName;
+            student.alt = 'Student on bus';
             return student;
         }
 
@@ -211,6 +234,14 @@
             againButton.classList.toggle('hidden', !againVisible);
         }
 
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         function startRound() {
             clearBus();
             answerInput.value = '';
@@ -223,14 +254,20 @@
             statusText.textContent = 'Remember how many students appear...';
             setControls(false, false, false, false);
 
-            windowPositions.forEach(position => {
-                const chance = 100 //70 - 7.5 * studentCount;
-                if (Math.random() * 100 < chance) {
-                    studentCount += 1;
-                    const student = createStudent(position);
-                    busArea.appendChild(student);
-                }
+            const numRandomStudents = Math.floor(Math.random() * 10); // 0 to 9
+            const studentIndices = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+            const selected = studentIndices.slice(0, numRandomStudents);
+
+            selected.forEach(index => {
+                const student = createStudent(windowPositions[index], index);
+                busArea.appendChild(student);
             });
+
+            // Always add the bus driver
+            const driver = createStudent(windowPositions[9], 9);
+            busArea.appendChild(driver);
+
+            studentCount = numRandomStudents + 1;
             correctCount = studentCount;
 
             setTimeout(() => {
@@ -253,15 +290,19 @@
             if (!roundActive) return;
             const value = Number(answerInput.value);
             if (!Number.isInteger(value) || value < 0) {
-                statusText.textContent = 'Please enter a whole number.';
+                statusText.textContent = 'my guy thats not a number';
                 return;
             }
             roundActive = false;
             if (value === correctCount) {
-                statusText.textContent = `Great job! There were ${correctCount} students on the bus.`;
+                statusText.textContent = `Sweet! There were ${correctCount} students on that bus!`;
+                currentStreak++;
+                if (currentStreak > longestStreak) longestStreak = currentStreak;
             } else {
-                statusText.textContent = `Not quite. There were ${correctCount} students, but you guessed ${value}.`;
+                statusText.textContent = `Aw shoot dangit. There were ${correctCount} students, but you guessed ${value} like a chud.`;
+                currentStreak = 0;
             }
+            updateStreakDisplay();
             setControls(true, true, false, true);
         }
 
