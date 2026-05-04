@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procrastination Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0d1a;--panel:#13132a;--panel2:#1a1a35;--border:#2a2a5a;
+  --accent:#7c3aed;--accent2:#06b6d4;--warn:#f59e0b;--danger:#ef4444;
+  --success:#10b981;--text:#e2e8f0;--muted:#64748b;--gold:#fbbf24;
+  --glow:0 0 18px #7c3aed88;--glow2:0 0 18px #06b6d488;--glow-gold:0 0 18px #fbbf2488;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;
+  background-image:radial-gradient(ellipse at 20% 10%,#1e0a4488 0%,transparent 60%),radial-gradient(ellipse at 80% 90%,#062a3a88 0%,transparent 60%);}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);}
+#app{max-width:960px;margin:0 auto;padding:16px;}
+
+/* TITLE */
+.game-title{font-family:'Press Start 2P',monospace;font-size:clamp(11px,2.5vw,19px);text-align:center;padding:24px 0 4px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--warn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 12px #7c3aed88);letter-spacing:2px;}
+.game-subtitle{text-align:center;color:var(--muted);font-family:'VT323',monospace;font-size:18px;letter-spacing:1px;margin-bottom:18px;}
+
+/* SCREENS */
+.screen{display:none;}
+.screen.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* SELECT GRIDS */
+.select-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0;}
+.select-card{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;}
+.select-card:hover{border-color:var(--accent);box-shadow:var(--glow);transform:translateY(-3px);}
+.select-card.selected{border-color:var(--accent);background:#1e0a44;box-shadow:var(--glow);}
+.select-card.job-card.selected{border-color:var(--gold);background:#1a1200;box-shadow:var(--glow-gold);}
+.card-icon{font-size:32px;margin-bottom:8px;display:block;}
+.card-name{font-weight:900;font-size:15px;margin-bottom:5px;color:var(--accent2);}
+.job-card .card-name{color:var(--gold);}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.card-stats{margin-top:8px;font-size:11px;}
+.stat-tag{display:inline-block;padding:2px 8px;border-radius:20px;margin:2px;}
+.stat-good{background:#10b98122;color:var(--success);border:1px solid #10b98144;}
+.stat-bad{background:#ef444422;color:var(--danger);border:1px solid #ef444444;}
+.stat-neu{background:#06b6d422;color:var(--accent2);border:1px solid #06b6d444;}
+
+/* HUD */
+.hud{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px;
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;}
+.hud-item{text-align:center;}
+.hud-label{color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Press Start 2P',monospace;font-size:6px;margin-bottom:3px;}
+.hud-val{font-size:18px;font-weight:900;}
+.bar-wrap{height:7px;background:#ffffff11;border-radius:4px;margin-top:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.bar-energy{background:linear-gradient(90deg,#06b6d4,#0ea5e9);}
+.bar-stress{background:linear-gradient(90deg,#f59e0b,#ef4444);}
+.bar-hw{background:linear-gradient(90deg,#10b981,#06b6d4);}
+.bar-gaming{background:linear-gradient(90deg,#7c3aed,#a855f7);}
+.bar-money{background:linear-gradient(90deg,#fbbf24,#f59e0b);}
+
+/* DAY HEADER */
+.day-header{text-align:center;font-family:'Press Start 2P',monospace;font-size:clamp(8px,1.8vw,12px);margin-bottom:12px;
+  color:var(--accent2);text-shadow:0 0 12px var(--accent2);}
+
+/* SCENE */
+.scene-box{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.scene-text{font-size:14px;line-height:1.75;color:var(--text);min-height:50px;}
+.thought-bubble{display:inline-block;background:#7c3aed22;border:1px solid #7c3aed55;
+  border-radius:10px;padding:5px 12px;margin-top:8px;font-style:italic;color:#a78bfa;font-size:13px;}
+
+/* EVENT BANNER */
+.event-banner{background:linear-gradient(90deg,#f59e0b22,#ef444422);border:1px solid #f59e0b55;
+  border-radius:10px;padding:9px 14px;margin-bottom:10px;font-size:13px;color:var(--warn);display:none;}
+.event-banner.show{display:block;animation:pulse .5s ease;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* CHOICES */
+.choice-section{margin-bottom:12px;}
+.choice-title{color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Press Start 2P',monospace;font-size:7px;}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:9px;}
+.choice-btn{background:var(--panel);border:2px solid var(--border);border-radius:12px;padding:12px 11px;
+  cursor:pointer;transition:all .2s;text-align:left;font-family:'Nunito',sans-serif;color:var(--text);font-size:13px;}
+.choice-btn:hover:not(:disabled){transform:translateY(-2px);}
+.choice-btn:disabled{opacity:.35;cursor:not-allowed;}
+.choice-btn.gaming{border-color:#7c3aed55;}
+.choice-btn.gaming:hover:not(:disabled){border-color:var(--accent);box-shadow:var(--glow);background:#1e0a44;}
+.choice-btn.work{border-color:#10b98155;}
+.choice-btn.work:hover:not(:disabled){border-color:var(--success);box-shadow:0 0 14px #10b98188;background:#0a2a1e;}
+.choice-btn.rest{border-color:#06b6d455;}
+.choice-btn.rest:hover:not(:disabled){border-color:var(--accent2);box-shadow:var(--glow2);background:#0a2030;}
+.choice-btn.special{border-color:#f59e0b55;}
+.choice-btn.special:hover:not(:disabled){border-color:var(--warn);box-shadow:0 0 14px #f59e0b88;background:#2a1a00;}
+.choice-btn.job-btn{border-color:#fbbf2455;}
+.choice-btn.job-btn:hover:not(:disabled){border-color:var(--gold);box-shadow:var(--glow-gold);background:#1a1200;}
+.choice-btn.shop-btn{border-color:#a855f755;}
+.choice-btn.shop-btn:hover:not(:disabled){border-color:#a855f7;box-shadow:0 0 14px #a855f788;background:#1a0a2a;}
+.choice-btn.scratch-btn{border-color:#fbbf2455;}
+.choice-btn.scratch-btn:hover:not(:disabled){border-color:var(--gold);box-shadow:var(--glow-gold);background:#1a1200;}
+.choice-label{font-weight:900;font-size:13px;}
+.choice-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.choice-risk{font-size:11px;margin-top:4px;}
+.risk-low{color:var(--success);}.risk-med{color:var(--warn);}.risk-high{color:#f97316;}.risk-vhigh{color:var(--danger);}
+
+/* FEEDBACK */
+.feedback-box{background:var(--panel);border-left:4px solid var(--accent2);border-radius:0 12px 12px 0;
+  padding:13px;margin-bottom:12px;font-size:13px;line-height:1.6;display:none;}
+.feedback-box.show{display:block;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.feedback-box.bad{border-color:var(--danger);}
+.feedback-box.warn{border-color:var(--warn);}
+.feedback-box.good{border-color:var(--success);}
+.feedback-box.gold{border-color:var(--gold);}
+
+/* CONTINUE */
+.continue-btn{display:none;width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;border-radius:12px;color:white;font-family:'Press Start 2P',monospace;font-size:10px;
+  cursor:pointer;transition:all .2s;letter-spacing:1px;box-shadow:var(--glow);}
+.continue-btn:hover{transform:translateY(-2px);box-shadow:0 0 28px #7c3aed99;}
+.continue-btn.show{display:block;animation:fadeIn .3s ease;}
+
+/* START SCREEN */
+.start-screen{text-align:center;padding:16px 0;}
+.pixel-art{font-size:56px;margin:8px 0;filter:drop-shadow(0 0 16px #7c3aed);}
+.start-desc{color:var(--muted);font-size:13px;line-height:1.8;max-width:560px;margin:0 auto 20px;}
+.goals-box{display:inline-grid;grid-template-columns:1fr 1fr;gap:9px;background:var(--panel);
+  border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:20px;text-align:left;}
+.goal-item{font-size:12px;}
+.section-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--accent2);margin:18px 0 10px;letter-spacing:1px;}
+
+/* SHOP MODAL */
+.modal-overlay{position:fixed;inset:0;background:#000000cc;z-index:200;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.show{opacity:1;pointer-events:auto;}
+.modal-box{background:var(--panel);border:2px solid var(--accent);border-radius:18px;padding:24px;max-width:600px;width:90%;
+  max-height:80vh;overflow-y:auto;box-shadow:var(--glow);}
+.modal-title{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--accent2);margin-bottom:16px;text-align:center;}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}
+.shop-item{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;}
+.shop-item:hover:not(.owned):not(.cant-afford){border-color:#a855f7;box-shadow:0 0 12px #a855f788;transform:translateY(-2px);}
+.shop-item.owned{border-color:var(--success);opacity:.7;cursor:default;}
+.shop-item.cant-afford{opacity:.4;cursor:not-allowed;}
+.shop-item-icon{font-size:26px;margin-bottom:6px;}
+.shop-item-name{font-weight:900;font-size:13px;color:#d4aaff;}
+.shop-item-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.shop-item-price{font-size:12px;color:var(--gold);font-weight:700;margin-top:6px;}
+.modal-close{display:block;width:100%;margin-top:16px;padding:12px;background:transparent;border:2px solid var(--border);
+  border-radius:10px;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-size:14px;}
+.modal-close:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* SCRATCH TICKET */
+.scratch-modal .modal-box{max-width:460px;}
+.ticket-container{background:linear-gradient(135deg,#1a1200,#2a2000);border:3px solid var(--gold);
+  border-radius:16px;padding:20px;text-align:center;margin:10px 0;}
+.ticket-title{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);margin-bottom:14px;letter-spacing:2px;}
+.scratch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0;}
+.scratch-cell{background:#2a2000;border:2px solid #fbbf2466;border-radius:10px;
+  height:64px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+.scratch-cell.revealed{background:#0a0a00;border-color:#fbbf24;cursor:default;}
+.scratch-cell.revealed.winner{background:linear-gradient(135deg,#1a1200,#2a1500);border-color:var(--gold);box-shadow:var(--glow-gold);}
+.scratch-cover{position:absolute;inset:0;background:linear-gradient(135deg,#3a2800,#5a3800);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fbbf2488;
+  font-family:'Press Start 2P',monospace;font-size:7px;transition:all .3s;}
+.scratch-cell.revealed .scratch-cover{opacity:0;transform:scale(1.5);}
+.ticket-result{min-height:40px;font-size:13px;color:var(--text);margin-top:8px;}
+
+/* SLEEP OVERLAY */
+.sleep-overlay{position:fixed;inset:0;background:#0d0d1aee;display:flex;align-items:center;justify-content:center;
+  z-index:100;flex-direction:column;gap:20px;opacity:0;pointer-events:none;transition:opacity .4s;}
+.sleep-overlay.show{opacity:1;pointer-events:auto;}
+.sleep-text{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--accent2);text-shadow:0 0 20px var(--accent2);}
+.zzz{font-size:48px;animation:float 1.5s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* ENDING */
+.ending-screen{text-align:center;padding:28px 16px;}
+.ending-title{font-family:'Press Start 2P',monospace;font-size:clamp(11px,3vw,20px);margin:14px 0;}
+.ending-icon{font-size:72px;filter:drop-shadow(0 0 20px #7c3aed);}
+.ending-desc{max-width:500px;margin:0 auto 20px;font-size:14px;line-height:1.8;color:var(--text);}
+.stats-final{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:16px 0;}
+.stat-final-item{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.stat-final-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.stat-final-val{font-size:20px;font-weight:900;margin-top:3px;}
+
+/* BUTTONS */
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:white;
+  padding:13px 28px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;transition:all .2s;
+  box-shadow:var(--glow);letter-spacing:1px;margin:5px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 28px #7c3aed99;}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-secondary{background:transparent;border:2px solid var(--border);border-radius:12px;color:var(--muted);
+  padding:11px 24px;font-family:'Nunito',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;margin:5px;}
+.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* LOG */
+.log-toggle{font-size:12px;color:var(--muted);cursor:pointer;text-align:right;margin-bottom:5px;}
+.log-toggle:hover{color:var(--accent2);}
+.event-log{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 13px;max-height:130px;overflow-y:auto;display:none;}
+.event-log.open{display:block;}
+.log-entry{font-size:11px;color:var(--muted);padding:2px 0;border-bottom:1px solid #ffffff08;}
+.log-entry:last-child{border:none;}
+.log-entry.bad{color:#f87171;}.log-entry.good{color:#6ee7b7;}.log-entry.warn{color:#fcd34d;}.log-entry.gold{color:#fbbf24;}
+
+/* INVENTORY BAR */
+.inv-bar{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:8px 14px;
+  margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;}
+.inv-label{font-size:9px;color:var(--muted);font-family:'Press Start 2P',monospace;margin-right:4px;}
+.inv-item{background:#2a1a44;border:1px solid var(--accent);border-radius:6px;padding:2px 8px;font-size:11px;color:#d4aaff;}
+.inv-empty{font-size:11px;color:var(--muted);font-style:italic;}
+
+/* ACTIVE ITEM EFFECTS */
+.effect-tag{display:inline-block;background:#10b98122;color:var(--success);border:1px solid #10b98133;
+  border-radius:6px;padding:1px 7px;font-size:10px;margin-left:4px;}
+
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--panel);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="game-title">PROCRASTINATION SIMULATOR</div>
+  <div class="game-subtitle">&gt; a week in the life of a student &lt;</div>
+
+  <!-- SLEEP OVERLAY -->
+  <div class="sleep-overlay" id="sleepOverlay">
+    <div class="zzz">💤</div>
+    <div class="sleep-text">YOU FELL ASLEEP...</div>
+    <div style="color:var(--muted);font-size:13px;text-align:center;">Time slips away while you dream of victory screens</div>
+  </div>
+
+  <!-- SHOP MODAL -->
+  <div class="modal-overlay" id="shopModal">
+    <div class="modal-box">
+      <div class="modal-title">🏪 CORNER STORE</div>
+      <div style="text-align:center;margin-bottom:12px;font-size:13px;color:var(--gold);">💰 Balance: $<span id="shopBalance">0</span></div>
+      <div class="shop-grid" id="shopGrid"></div>
+      <button class="modal-close" onclick="closeShop()">← Back to suffering</button>
+    </div>
+  </div>
+
+  <!-- SCRATCH TICKET MODAL -->
+  <div class="modal-overlay scratch-modal" id="scratchModal">
+    <div class="modal-box">
+      <div class="modal-title">🎟️ LUCKY SCRATCHER</div>
+      <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:6px;">Cost: $<span id="scratchCost">2</span> • Must be 18+ (you are)</div>
+      <div class="ticket-container" id="ticketContainer">
+        <div class="ticket-title">★ STUDENT BUCKS ★</div>
+        <div class="scratch-grid" id="scratchGrid"></div>
+        <div class="ticket-result" id="ticketResult">Scratch all 6 squares to reveal your fate!</div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <button class="btn-primary" id="newTicketBtn" onclick="buyNewTicket()" style="font-size:9px;padding:10px 18px;">🎟️ NEW TICKET ($<span id="newTicketCost">2</span>)</button>
+        <button class="modal-close" onclick="closeScratch()">← Leave (you probably lost)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="startScreen">
+    <div class="start-screen">
+      <div class="pixel-art">🎮</div>
+      <p class="start-desc">It's Monday morning. You have a week of assignments, a desperate need for cash, and all you want to do is game. Navigate your chaotic student life.</p>
+      <div class="goals-box">
+        <div class="goal-item">📚 Complete <strong>20 hrs</strong> homework</div>
+        <div class="goal-item">🎮 Enjoy <strong>14 hrs</strong> gaming</div>
+        <div class="goal-item">💰 Earn money &amp; survive</div>
+        <div class="goal-item">😤 Don't burn out</div>
+      </div>
+      <div class="section-title">CHOOSE YOUR TRAIT</div>
+      <div class="select-grid" id="traitGrid"></div>
+      <div class="section-title">CHOOSE YOUR JOB</div>
+      <div class="select-grid" id="jobGrid"></div>
+      <button class="btn-primary" id="startBtn" onclick="startGame()" disabled>▶ BEGIN YOUR SUFFERING</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="gameScreen">
+    <div class="hud" id="hud"></div>
+    <div class="inv-bar" id="invBar"></div>
+    <div class="day-header" id="dayHeader"></div>
+    <div class="event-banner" id="eventBanner"></div>
+    <div class="scene-box">
+      <div class="scene-text" id="sceneText"></div>
+      <div class="thought-bubble" id="thoughtBubble"></div>
+    </div>
+    <div class="feedback-box" id="feedbackBox"></div>
+    <div class="choice-section" id="choiceSection">
+      <div class="choice-title">⚡ WHAT DO YOU DO?</div>
+      <div class="choices" id="choices"></div>
+    </div>
+    <button class="continue-btn" id="continueBtn" onclick="continueGame()">NEXT ▶</button>
+    <div class="log-toggle" onclick="toggleLog()">📋 event log</div>
+    <div class="event-log" id="eventLog"></div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="screen" id="endScreen">
+    <div class="ending-screen" id="endContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA DEFINITIONS
+// ═══════════════════════════════════════════
+
+const TRAITS = [
+  { id:'disciplined', icon:'🧘', name:'Disciplined Student',
+    desc:'You have routines. Alarms. A planner. People find it unsettling.',
+    mods:{ sleepRiskMult:.65, stressGainMult:.8, gamingSatisfaction:.85 },
+    tags:[['Low sleep risk','good'],['Less stress','good'],['Lower gaming fun','bad']]},
+  { id:'gamer', icon:'🕹️', name:'The Gamer',
+    desc:'Gaming is your identity, personality, and dietary supplement.',
+    mods:{ sleepRiskMult:1.3, gamingSatisfaction:1.55, hwEfficiency:.75 },
+    tags:[['Gaming hits different','good'],['High sleep risk','bad'],['Homework? Cringe','bad']]},
+  { id:'procrastinator', icon:'😬', name:'Procrastinator',
+    desc:'Why do today what you can panic about at 3AM? Expert technique.',
+    mods:{ sleepRiskMult:1.1, stressGainMult:1.4, deadlineBonusMult:1.8 },
+    tags:[['Deadline power boost','good'],['Chronic stress','bad'],['Chaotic energy','bad']]},
+  { id:'caffeinated', icon:'☕', name:'Caffeine Addict',
+    desc:'You run on cold brew and spite. Your blood type is espresso.',
+    mods:{ caffeineBonus:2.5, caffeineCrashMult:1.8, sleepRiskMult:.9 },
+    tags:[['Mega caffeine boost','good'],['Brutal crashes','bad'],['Moderate risk','neu']]},
+  { id:'hustler', icon:'💸', name:'Side Hustle King',
+    desc:'You find money everywhere. Textbooks, tips, maybe mild schemes.',
+    mods:{ moneyMult:1.6, sleepRiskMult:1.1, stressGainMult:1.1 },
+    tags:[['Earn more money','good'],['Always tired','bad'],['Money-brained','neu']]},
+  { id:'lucky', icon:'🍀', name:'Born Lucky',
+    desc:"The universe just... works out for you. Somehow. It's annoying.",
+    mods:{ scratchLuckMult:2.0, eventLuckMult:.6, sleepRiskMult:.8 },
+    tags:[['Better scratch odds','good'],['Fewer bad events','good'],['No other skills','bad']]}
+];
+
+const JOBS = [
+  { id:'barista', icon:'☕', name:'Barista', pay:[8,14], shift:1, desc:'Coffee shop. Free drinks. Latte art on your soul.',
+    perks:'Free caffeine once/day', mods:{ freeCaffeine:true } },
+  { id:'tutor', icon:'📐', name:'Peer Tutor', pay:[12,18], shift:1, desc:'Teach others what you barely know yourself.',
+    perks:'+0.5h HW per shift', mods:{ hwBonus:.5 } },
+  { id:'delivery', icon:'🛵', name:'Food Delivery', pay:[10,20], shift:1, desc:'Racing against cold food and your GPA simultaneously.',
+    perks:'Tips are random (±$8)', mods:{ tipVariance:8 } },
+  { id:'streamer', icon:'📺', name:'Twitch Streamer', pay:[0,25], shift:2, desc:"Gaming IS the job. Chat won't stop asking you to play worse.",
+    perks:'Gaming = work (0.5x stress)', mods:{ streamGaming:true } },
+  { id:'retail', icon:'🏪', name:'Retail Cashier', pay:[9,11], shift:1, desc:'The customer is always wrong but you must smile anyway.',
+    perks:'Shop discount 20%', mods:{ shopDiscount:.2 } },
+  { id:'freelance', icon:'💻', name:'Freelance Coder', pay:[15,35], shift:2, desc:'Fiverr gigs at 2AM. The pay is wild but so is the schedule.',
+    perks:'High pay, uses 2 blocks', mods:{ } }
+];
+
+const SHOP_ITEMS = [
+  { id:'coffee_pro', icon:'☕', name:'Premium Coffee', price:4, desc:'High-grade energy. +30 energy, better than base caffeine.', effect:'energy+30', consumable:true, stock:3 },
+  { id:'pizza', icon:'🍕', name:'Comfort Pizza', price:8, desc:'Carbs heal everything. +20 energy, -15 stress.', effect:'energy+20,stress-15', consumable:true, stock:2 },
+  { id:'energy_drink', icon:'⚡', name:'XL Energy Drink', price:5, desc:'+40 energy for 3 turns. Crash harder though.', effect:'caffeine+3', consumable:true, stock:3 },
+  { id:'noise_cancel', icon:'🎧', name:'Noise-Canceling Headphones', price:45, desc:'HW efficiency +25%. The world stops existing.', effect:'hweff+0.25', consumable:false },
+  { id:'planner', icon:'📓', name:'Study Planner', price:12, desc:'Stress gains reduced 20% permanently.', effect:'stressred+0.2', consumable:false },
+  { id:'blue_light', icon:'🕶️', name:'Blue Light Glasses', price:18, desc:'Sleep risk reduced 20% during night gaming.', effect:'sleepred+0.2', consumable:false },
+  { id:'snack_box', icon:'🍫', name:'Snack Subscription Box', price:20, desc:'Permanent +5 energy every morning.', effect:'morningenergy+5', consumable:false },
+  { id:'alarm', icon:'⏰', name:'Smart Alarm Clock', price:15, desc:"Can't fall asleep past 50% sleep risk. Safety net.", effect:'maxsleepcap', consumable:false },
+  { id:'scratch_3pack', icon:'🎟️', name:'3x Scratch Tickets', price:6, desc:'Three lottery tickets for the price of stress.', effect:'scratch+3', consumable:true, stock:5 },
+];
+
+const RANDOM_EVENTS = [
+  // POSITIVE
+  { id:'found_cash', text:"💵 You find $12 crumpled in an old jacket pocket!", type:'good',
+    effect:(g)=>{ g.money+=12; }, desc:'Found $12!' },
+  { id:'study_group', text:"📚 Classmate invites you to a study group. Actually productive for once.", type:'good',
+    effect:(g)=>{ g.hwDone=Math.min(g.hwNeeded,g.hwDone+1.5); g.stress=Math.max(0,g.stress-8); }, desc:'HW +1.5h, Stress -8' },
+  { id:'energy_found', text:"⚡ You find a forgotten energy drink in your backpack!", type:'good',
+    effect:(g)=>{ g.energy=Math.min(100,g.energy+25); }, desc:'Energy +25' },
+  { id:'professor_cancel', text:"🎉 Professor cancelled class! Free time unlocked.", type:'good',
+    effect:(g)=>{ g.energy=Math.min(100,g.energy+15); g.stress=Math.max(0,g.stress-10); }, desc:'Energy +15, Stress -10' },
+  { id:'game_sale', text:"💸 Massive Steam sale. Your wishlist is begging you.", type:'good',
+    effect:(g)=>{ g.temptation=Math.min(100,g.temptation+20); }, desc:'Temptation +20 (dangerous)' },
+  { id:'scholarship_email', text:"📧 Financial aid deposited $25 in your account!", type:'good',
+    effect:(g)=>{ g.money+=25; }, desc:'$25 deposited' },
+  // NEGATIVE  
+  { id:'friend_invite', text:"🎮 Friend texts: 'Bro get on, 5-stack is waiting, don't be lame'", type:'bad',
+    effect:(g)=>{ g.temptation=Math.min(100,g.temptation+25); g.stress=Math.min(100,g.stress+6); }, desc:'Temptation +25, guilt +6' },
+  { id:'surprise_quiz', text:"😱 Surprise quiz announced for TOMORROW. No warning. Just vibes.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+20); g.hwNeeded=Math.min(g.hwNeeded+2,23); }, desc:'Stress +20, HW +2h' },
+  { id:'game_update', text:"🆕 Massive game update just dropped. 8GB. New content. You NEED this.", type:'bad',
+    effect:(g)=>{ g.temptation=Math.min(100,g.temptation+28); }, desc:'Temptation +28' },
+  { id:'parents_check', text:"👀 Parent FaceTime: 'How are your grades?' You go full poker face.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+14); if(g.hwDone<g.hwNeeded*.3)g.stress=Math.min(100,g.stress+14); }, desc:'Stress +14 (×2 if behind)' },
+  { id:'internet_out', text:"📡 INTERNET IS OUT. ISP says '2-4 hours.' It will be 6.", type:'bad',
+    effect:(g)=>{ g.internetDown=true; }, desc:'Gaming blocked this turn' },
+  { id:'assignment_due', text:"📅 You JUST remembered an assignment due tomorrow. TOMORROW.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+22); g.urgentHW=true; }, desc:'Stress +22, urgent deadline' },
+  { id:'phone_dead', text:"📵 Phone died. Charger is across campus. You feel... disconnected.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+8); g.energy=Math.max(0,g.energy-10); }, desc:'Stress +8, Energy -10' },
+  { id:'wallet_stolen', text:"😤 Someone nicked $10 from your unattended wallet. Classic.", type:'bad',
+    effect:(g)=>{ g.money=Math.max(0,g.money-10); g.stress=Math.min(100,g.stress+12); }, desc:'Lost $10, Stress +12' },
+  { id:'noisy_roommate', text:"🔊 Roommate is blasting music. Can't focus on anything.", type:'bad',
+    effect:(g)=>{ if(!g.inventory.includes('noise_cancel')){ g.energy=Math.max(0,g.energy-12); g.stress=Math.min(100,g.stress+10); }}, desc:'Energy -12, Stress +10 (cancelled by headphones)' },
+  { id:'stomach_bug', text:"🤢 You feel kinda sick. Probably that dining hall mystery meat.", type:'bad',
+    effect:(g)=>{ g.energy=Math.max(0,g.energy-20); g.stress=Math.min(100,g.stress+8); }, desc:'Energy -20, Stress +8' },
+  { id:'group_project', text:"👥 Group project partner texts: 'Can you do my part too? Thanks'", type:'bad',
+    effect:(g)=>{ g.hwNeeded=Math.min(g.hwNeeded+1.5,23); g.stress=Math.min(100,g.stress+16); }, desc:'HW +1.5h, Stress +16' },
+  { id:'car_trouble', text:"🚗 Bike tire flat. Late to class. Professor marks you absent.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+18); g.money=Math.max(0,g.money-8); }, desc:'Stress +18, Repair cost $8' },
+  { id:'rent_due', text:"💸 Landlord reminder: rent due in 3 days. Your bank account weeps.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+15); }, desc:'Stress +15 (financial anxiety)' },
+  { id:'prof_email', text:"📧 Professor emails: 'Please see me about your grade.' Terror.", type:'bad',
+    effect:(g)=>{ g.stress=Math.min(100,g.stress+20); }, desc:'Stress +20, dread activated' },
+  { id:'social_media', text:"📱 You fall down a 40-minute TikTok rabbit hole. It just... happened.", type:'bad',
+    effect:(g)=>{ g.energy=Math.max(0,g.energy-8); if(g.block!==3)advanceHalfTurn(); }, desc:'Energy -8, lost time' },
+  { id:'power_outage', text:"💡 Campus power flickers for 20 minutes. Your unsaved work: gone.", type:'bad',
+    effect:(g)=>{ g.hwDone=Math.max(0,g.hwDone-.5); g.stress=Math.min(100,g.stress+15); }, desc:'HW -0.5h, Stress +15' },
+  { id:'fire_alarm', text:"🚨 3AM fire alarm. False alarm. 45-minute wait in the cold.", type:'bad',
+    effect:(g)=>{ g.energy=Math.max(0,g.energy-18); g.stress=Math.min(100,g.stress+10); }, desc:'Energy -18, Stress +10' },
+];
+
+const THOUGHTS = {
+  high_energy_low_hw:["Time to be productive! ...right after this game.","I'm feeling weirdly motivated. Suspicious.","Peak brain hours. Totally going to waste them."],
+  low_energy:["Everything feels heavy. Even the controller.","Is sleep just death but you get to wake up?","My eyes are doing the thing where they close on their own."],
+  high_stress:["Okay I'm fine. I'm totally fine. I'm NOT fine.","Why do I do this to myself every single time.","Panic is just excitement for pessimists, right?"],
+  gaming_binge:["Just one more game. I've been saying that for 4 hours.","The homework will still be there. Probably.","What even is time? A construct. A lie."],
+  behind_hw:["The deadline isn't real if I don't look at it.","I work better under pressure. Definitely. For sure.","Future me's problem. Present me is gaming."],
+  broke:["$0 in my account and 5 days left. Peak student experience.","Maybe I should check those scratch tickets...","Ramen again. Always ramen."],
+  rich:["Flush with cash. What would responsible me do? Not this.","Money in pocket, homework undone. Balance.","Maybe I should buy something at the shop..."],
+  normal:["Balance is a myth invented by people who found the perfect game.","Maybe I'll do homework during loading screens.","I'm not procrastinating, I'm strategically delaying."]
+};
+
+const SCENES = {
+  morning:["You wake up squinting at your phone. The homework still exists. So does your gaming setup.",
+           "Alarm. Snooze. Alarm. Snooze. The to-do list doesn't care.",
+           "Morning light filters in. Your textbook judges you from the desk."],
+  afternoon:["The afternoon stretches out before you like an opportunity you're about to misuse.",
+             "Post-lunch brain fog. Perfect gaming conditions, objectively.",
+             "Your stomach is full. Your motivation is not."],
+  evening:["The sun is setting. You've accomplished... something. Maybe.",
+           "Evening. The deadline clock gets louder as the sky darkens.",
+           "Night approaches. The dangerous hours of poor decision-making begin."],
+  night:["It's late. The wise choice would be to sleep.","2AM energy hits different. So does the regret.","The house is quiet. You and your bad choices are alone."]
+};
+
+// SCRATCH TICKET PRIZES (weighted)
+const SCRATCH_PRIZES = [
+  { symbol:'💀', name:'Nothing', value:0, weight:30 },
+  { symbol:'🎈', name:'Nothing (again)', value:0, weight:25 },
+  { symbol:'💸', name:'$1 back', value:1, weight:18 },
+  { symbol:'🌟', name:'$3!', value:3, weight:12 },
+  { symbol:'🎯', name:'$5!', value:5, weight:8 },
+  { symbol:'💎', name:'$10!', value:10, weight:4 },
+  { symbol:'🏆', name:'$25!', value:25, weight:2 },
+  { symbol:'🎰', name:'JACKPOT $50!', value:50, weight:1 },
+];
+
+// ═══════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════
+let G = {};
+let selectedTrait = null;
+let selectedJob = null;
+let eventLog = [];
+let logOpen = false;
+let scratchState = { cells:[], revealed:0, done:false, tickets:0 };
+
+function initGame() {
+  const jobPay = selectedJob.pay;
+  G = {
+    day:1, block:0,
+    energy:85, stress:10,
+    hwDone:0, hwNeeded:20,
+    gamingDone:0, gamingGoal:14,
+    temptation:30,
+    money: 20 + Math.floor(Math.random()*15), // start with $20-35
+    trait: selectedTrait,
+    job: selectedJob,
+    inventory: [],        // owned permanent items
+    consumables: {},      // consumable items with qty
+    activeEffects: {},    // turn-based effects
+    internetDown: false,
+    urgentHW: false,
+    caffeineTurns: 0,
+    missedDeadlines: 0,
+    turnsPlayed: 0,
+    asleepTurns: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    scratchTickets: 1,    // start with 1 free scratch ticket
+    scratchWinnings: 0,
+    lastEvent: null,
+    workedThisTurn: false,
+    freeBaristaCoffee: false,
+  };
+  eventLog = [];
+}
+
+// ═══════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════
+function setupTraits() {
+  document.getElementById('traitGrid').innerHTML = TRAITS.map(t=>`
+    <div class="select-card" onclick="selectTrait('${t.id}')">
+      <span class="card-icon">${t.icon}</span>
+      <div class="card-name">${t.name}</div>
+      <div class="card-desc">${t.desc}</div>
+      <div class="card-stats">${t.tags.map(([l,c])=>`<span class="stat-tag stat-${c}">${l}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function setupJobs() {
+  document.getElementById('jobGrid').innerHTML = JOBS.map(j=>`
+    <div class="select-card job-card" onclick="selectJob('${j.id}')">
+      <span class="card-icon">${j.icon}</span>
+      <div class="card-name">${j.name}</div>
+      <div class="card-desc">${j.desc}</div>
+      <div class="card-stats">
+        <span class="stat-tag stat-good">$${j.pay[0]}-$${j.pay[1]}/shift</span>
+        <span class="stat-tag stat-${j.shift===2?'bad':'neu'}">${j.shift===2?'2 blocks':'1 block'}</span>
+        <span class="stat-tag stat-neu">${j.perks}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectTrait(id) {
+  selectedTrait = TRAITS.find(t=>t.id===id);
+  document.querySelectorAll('#traitGrid .select-card').forEach((c,i)=>c.classList.toggle('selected',TRAITS[i].id===id));
+  checkStartReady();
+}
+function selectJob(id) {
+  selectedJob = JOBS.find(j=>j.id===id);
+  document.querySelectorAll('#jobGrid .select-card').forEach((c,i)=>c.classList.toggle('selected',JOBS[i].id===id));
+  checkStartReady();
+}
+function checkStartReady() {
+  document.getElementById('startBtn').disabled = !(selectedTrait && selectedJob);
+}
+
+// ═══════════════════════════════════════════
+// HUD + INVENTORY
+// ═══════════════════════════════════════════
+function renderHUD() {
+  const hwPct = Math.min(100,(G.hwDone/G.hwNeeded)*100);
+  const gamePct = Math.min(100,(G.gamingDone/G.gamingGoal)*100);
+  const moneyPct = Math.min(100,(G.money/100)*100);
+  document.getElementById('hud').innerHTML = `
+    <div class="hud-item"><div class="hud-label">Day</div><div class="hud-val" style="color:var(--accent2)">${G.day}/7</div></div>
+    <div class="hud-item"><div class="hud-label">Time</div><div class="hud-val" style="color:var(--warn);font-size:12px">${['🌅 Morn','☀️ Arvo','🌆 Even','🌙 Night'][G.block]}</div></div>
+    <div class="hud-item">
+      <div class="hud-label">Energy</div>
+      <div class="hud-val" style="color:${G.energy>50?'#06b6d4':G.energy>25?'#f59e0b':'#ef4444'}">${G.energy}%</div>
+      <div class="bar-wrap"><div class="bar-fill bar-energy" style="width:${G.energy}%"></div></div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">Stress</div>
+      <div class="hud-val" style="color:${G.stress<40?'#10b981':G.stress<70?'#f59e0b':'#ef4444'}">${G.stress}%</div>
+      <div class="bar-wrap"><div class="bar-fill bar-stress" style="width:${G.stress}%"></div></div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">HW</div>
+      <div class="hud-val" style="color:var(--success)">${G.hwDone.toFixed(1)}h</div>
+      <div class="bar-wrap"><div class="bar-fill bar-hw" style="width:${hwPct}%"></div></div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">Gaming</div>
+      <div class="hud-val" style="color:var(--accent)">${G.gamingDone.toFixed(1)}h</div>
+      <div class="bar-wrap"><div class="bar-fill bar-gaming" style="width:${gamePct}%"></div></div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">Cash</div>
+      <div class="hud-val" style="color:var(--gold)">$${G.money}</div>
+      <div class="bar-wrap"><div class="bar-fill bar-money" style="width:${moneyPct}%"></div></div>
+    </div>`;
+}
+
+function renderInventory() {
+  const bar = document.getElementById('invBar');
+  const items = [];
+  G.inventory.forEach(id=>{
+    const item = SHOP_ITEMS.find(i=>i.id===id);
+    if(item) items.push(`<span class="inv-item">${item.icon} ${item.name}</span>`);
+  });
+  Object.entries(G.consumables).forEach(([id,qty])=>{
+    if(qty>0){
+      const item = SHOP_ITEMS.find(i=>i.id===id);
+      if(item) items.push(`<span class="inv-item">${item.icon} ${item.name} ×${qty}</span>`);
+    }
+  });
+  if(G.scratchTickets>0) items.push(`<span class="inv-item">🎟️ Scratch ×${G.scratchTickets}</span>`);
+  if(G.caffeineTurns>0) items.push(`<span class="inv-item" style="color:#fcd34d">☕ Caffeine (${G.caffeineTurns}t)</span>`);
+  bar.innerHTML = `<span class="inv-label">ITEMS:</span>` + (items.length ? items.join('') : '<span class="inv-empty">No items</span>');
+}
+
+// ═══════════════════════════════════════════
+// MAIN TURN
+// ═══════════════════════════════════════════
+function renderTurn() {
+  G.turnsPlayed++;
+  G.internetDown = false;
+  G.urgentHW = false;
+  G.workedThisTurn = false;
+  G.freeBaristaCoffee = false;
+
+  // Morning resets
+  if(G.block===0){
+    if(G.job.id==='barista') G.freeBaristaCoffee = true;
+    if(G.inventory.includes('snack_box')) { G.energy=Math.min(100,G.energy+5); addLog('Snack box morning boost +5 energy 🍫','good'); }
+  }
+
+  // Random event (35% chance)
+  let activeEvent = null;
+  if(Math.random()<0.35){
+    const luckMult = G.trait.mods.eventLuckMult||1;
+    const pool = RANDOM_EVENTS.filter(e=>e.id!==(G.lastEvent?.id));
+    // Lucky trait: weight toward positive events
+    let chosen;
+    if(luckMult<1 && Math.random()>0.4){
+      const goodPool = pool.filter(e=>e.type==='good');
+      chosen = goodPool.length ? goodPool[Math.floor(Math.random()*goodPool.length)] : pool[Math.floor(Math.random()*pool.length)];
+    } else {
+      chosen = pool[Math.floor(Math.random()*pool.length)];
+    }
+    activeEvent = chosen;
+    G.lastEvent = activeEvent;
+    activeEvent.effect(G);
+    addLog(`EVENT: ${activeEvent.text.substring(0,70)}`, activeEvent.type==='good'?'good':'bad');
+  }
+
+  // Caffeine tick
+  if(G.caffeineTurns>0){
+    G.caffeineTurns--;
+    if(G.caffeineTurns===0){
+      const crash = Math.round(18*(G.trait.mods.caffeineCrashMult||1));
+      G.energy=Math.max(0,G.energy-crash);
+      addLog(`☕ Caffeine crash! Energy -${crash}`,'bad');
+    }
+  }
+
+  renderHUD(); renderInventory();
+
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  document.getElementById('dayHeader').textContent=`${days[G.day-1].toUpperCase()} — ${['MORNING','AFTERNOON','EVENING','NIGHT'][G.block]}`;
+
+  const banner=document.getElementById('eventBanner');
+  if(activeEvent){
+    banner.textContent='⚡ '+activeEvent.text+' ('+activeEvent.desc+')';
+    banner.classList.add('show');
+  } else { banner.classList.remove('show'); }
+
+  const blockName=['morning','afternoon','evening','night'][G.block];
+  const pool=SCENES[blockName];
+  document.getElementById('sceneText').textContent=pool[Math.floor(Math.random()*pool.length)];
+
+  let thoughtKey='normal';
+  if(G.energy<30) thoughtKey='low_energy';
+  else if(G.stress>65) thoughtKey='high_stress';
+  else if(G.gamingDone>8&&G.hwDone<8) thoughtKey='gaming_binge';
+  else if(G.hwDone<G.hwNeeded*.3&&G.day>3) thoughtKey='behind_hw';
+  else if(G.money<5) thoughtKey='broke';
+  else if(G.money>60) thoughtKey='rich';
+  else if(G.energy>60&&G.hwDone<5) thoughtKey='high_energy_low_hw';
+  const thoughts=THOUGHTS[thoughtKey];
+  document.getElementById('thoughtBubble').textContent='"'+thoughts[Math.floor(Math.random()*thoughts.length)]+'"';
+
+  document.getElementById('feedbackBox').classList.remove('show','bad','warn','good','gold');
+  buildChoices();
+  document.getElementById('continueBtn').classList.remove('show');
+}
+
+function buildChoices() {
+  const mods=G.trait.mods;
+  const internet=G.internetDown;
+  const blocksLeft=(7-G.day)*4+(3-G.block)+1;
+  const hwUrgent=blocksLeft>0&&(G.hwNeeded-G.hwDone)/blocksLeft>1.5;
+  let html='';
+
+  // ── GAMING ──
+  if(!internet){
+    const sessions=[
+      {label:'Quick Match (30m)',hrs:.5,risk:'low',riskPct:Math.round(5*(mods.sleepRiskMult||1)*(G.energy<50?1.5:1))},
+      {label:'One Hour (1h)',hrs:1,risk:'med',riskPct:Math.round(15*(mods.sleepRiskMult||1)*(G.energy<50?1.6:1))},
+      {label:'Gaming Binge (2h)',hrs:2,risk:'high',riskPct:Math.round(30*(mods.sleepRiskMult||1)*(G.energy<40?2:1))},
+      {label:'All-Night (4h)',hrs:4,risk:'vhigh',riskPct:Math.round(55*(mods.sleepRiskMult||1)*(G.energy<60?1.5:1))},
+    ];
+    // Blue light glasses reduce night risk
+    if(G.inventory.includes('blue_light')&&G.block===3){
+      sessions.forEach(s=>s.riskPct=Math.round(s.riskPct*.8));
+    }
+    // Alarm cap
+    sessions.forEach(s=>{
+      if(G.inventory.includes('alarm')&&s.riskPct>50) s.riskPct=50;
+    });
+    if(G.inventory.includes('alarm')) sessions.forEach(s=>s.riskPct=Math.min(s.riskPct,50));
+
+    sessions.forEach(s=>{
+      const riskLabel={low:'🟢 Low',med:'🟡 Moderate',high:'🟠 High',vhigh:'🔴 Very High'}[s.risk];
+      const riskCls=`risk-${s.risk}`;
+      const streamNote=mods.streamGaming&&G.job.id==='streamer'?` <span class="effect-tag">+$${Math.round(s.hrs*4)} streaming</span>`:'';
+      html+=`<button class="choice-btn gaming" onclick="makeChoice('game',${s.hrs},${s.riskPct})">
+        <div class="choice-label">🎮 ${s.label}${streamNote}</div>
+        <div class="choice-meta">+${s.hrs}h gaming • Energy -${Math.round(s.hrs*12+5)}%</div>
+        <div class="choice-risk ${riskCls}">${riskLabel} risk (${s.riskPct}% sleep)</div>
+      </button>`;
+    });
+  } else {
+    html+=`<button class="choice-btn gaming" disabled><div class="choice-label">📡 No Internet</div><div class="choice-meta">Gaming blocked this turn.</div></button>`;
+  }
+
+  // ── HOMEWORK ──
+  const hwEff=(mods.hwEfficiency||1)*(G.energy<30?.5:1)*(G.caffeineTurns>0?1.15:1)*(G.inventory.includes('noise_cancel')?1.25:1)*(G.inventory.includes('planner')?1.1:1);
+  const hwLabel=G.job.mods.hwBonus?`<span class="effect-tag">+${G.job.mods.hwBonus}h tutor bonus</span>`:'';
+  html+=`<button class="choice-btn work" onclick="makeChoice('hw',2,0)">
+    <div class="choice-label">📚 Study Hard (2h) ${hwLabel}</div>
+    <div class="choice-meta">+${(2*hwEff+(G.job.mods.hwBonus||0)).toFixed(1)}h done • Stress -8 • Energy -15</div>
+    <div class="choice-risk risk-low">✅ Safe${hwUrgent?' ⚠️ URGENT!':''}</div>
+  </button>`;
+  html+=`<button class="choice-btn work" onclick="makeChoice('hw',1,0)">
+    <div class="choice-label">📖 Quick Review (1h)</div>
+    <div class="choice-meta">+${(1*hwEff+(G.job.mods.hwBonus||0)*.5).toFixed(1)}h done • Stress -4</div>
+    <div class="choice-risk risk-low">✅ Low commitment</div>
+  </button>`;
+
+  // ── WORK SHIFT ──
+  if(!G.workedThisTurn){
+    const job=G.job;
+    const payMin=job.pay[0], payMax=job.pay[1];
+    const moneyMult=mods.moneyMult||1;
+    const blocks=job.shift===2?'2 blocks':'1 block';
+    const energyCost=job.shift===2?25:15;
+    html+=`<button class="choice-btn job-btn" onclick="makeChoice('work',0,0)">
+      <div class="choice-label">${job.icon} Work Shift (${blocks})</div>
+      <div class="choice-meta">~$${Math.round(payMin*moneyMult)}-$${Math.round(payMax*moneyMult)} • Energy -${energyCost}</div>
+      <div class="choice-risk" style="color:var(--gold)">💰 Earn money${job.shift===2?' (uses 2 blocks)':''}</div>
+    </button>`;
+  }
+
+  // ── REST ──
+  html+=`<button class="choice-btn rest" onclick="makeChoice('sleep',4,0)">
+    <div class="choice-label">😴 Sleep (4h)</div>
+    <div class="choice-meta">Energy +50 • Stress -20</div>
+    <div class="choice-risk" style="color:var(--accent2)">💤 Rest & recover</div>
+  </button>`;
+
+  // ── CAFFEINE ──
+  if(G.caffeineTurns===0){
+    if(G.freeBaristaCoffee&&G.job.id==='barista'){
+      html+=`<button class="choice-btn special" onclick="makeChoice('caffeine_free',0,0)">
+        <div class="choice-label">☕ Staff Coffee (FREE)</div>
+        <div class="choice-meta">Energy +35 • Barista perk!</div>
+        <div class="choice-risk risk-med">⚠️ Crash later</div>
+      </button>`;
+    } else {
+      html+=`<button class="choice-btn special" onclick="makeChoice('caffeine',0,0)">
+        <div class="choice-label">☕ Energy Drink</div>
+        <div class="choice-meta">Energy +${Math.round(30*(mods.caffeineBonus||1))}% for 2 turns</div>
+        <div class="choice-risk risk-high">⚠️ Crash later</div>
+      </button>`;
+    }
+  }
+
+  // ── SHOP ──
+  html+=`<button class="choice-btn shop-btn" onclick="openShop()">
+    <div class="choice-label">🏪 Corner Store</div>
+    <div class="choice-meta">Balance: $${G.money} • Buy items & upgrades</div>
+    <div class="choice-risk" style="color:#a855f7">💜 Spend wisely</div>
+  </button>`;
+
+  // ── SCRATCH TICKET ──
+  if(G.scratchTickets>0){
+    html+=`<button class="choice-btn scratch-btn" onclick="openScratch()">
+      <div class="choice-label">🎟️ Scratch Ticket (×${G.scratchTickets})</div>
+      <div class="choice-meta">You have ${G.scratchTickets} ticket${G.scratchTickets>1?'s':''} to scratch!</div>
+      <div class="choice-risk" style="color:var(--gold)">🍀 Try your luck</div>
+    </button>`;
+  } else {
+    html+=`<button class="choice-btn scratch-btn" onclick="openScratch()">
+      <div class="choice-label">🎟️ Buy Scratch Ticket ($2)</div>
+      <div class="choice-meta">Lottery ticket • Age 18+ verified ✓</div>
+      <div class="choice-risk" style="color:var(--gold)">🍀 Gamble responsibly(?)</div>
+    </button>`;
+  }
+
+  // ── USE CONSUMABLES ──
+  Object.entries(G.consumables).forEach(([id,qty])=>{
+    if(qty>0){
+      const item=SHOP_ITEMS.find(i=>i.id===id);
+      if(!item) return;
+      html+=`<button class="choice-btn shop-btn" onclick="useItem('${id}')">
+        <div class="choice-label">${item.icon} Use ${item.name}</div>
+        <div class="choice-meta">${item.desc} (×${qty} left)</div>
+        <div class="choice-risk" style="color:#a855f7">✨ Instant effect</div>
+      </button>`;
+    }
+  });
+
+  document.getElementById('choices').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// CHOICE HANDLER
+// ═══════════════════════════════════════════
+function makeChoice(type, val, sleepRisk) {
+  document.getElementById('choiceSection').style.display='none';
+  const mods=G.trait.mods;
+  let feedback='', fbClass='', didSleep=false;
+
+  if(type==='game'){
+    const hrs=val;
+    const energyDrain=Math.round(hrs*12+5+(G.stress>60?10:0));
+    G.energy=Math.max(0,G.energy-energyDrain);
+    G.temptation=Math.max(0,G.temptation-10);
+
+    // Streamer job: gaming earns money
+    if(G.job.id==='streamer'){
+      const earned=Math.round(hrs*4*(mods.moneyMult||1));
+      G.money+=earned;
+      G.totalEarned+=earned;
+      feedback+=`📺 Streaming earned $${earned}! `;
+    }
+
+    const cafBonus=G.caffeineTurns>0?1.2:1;
+    G.gamingDone+=hrs*cafBonus*(mods.gamingSatisfaction||1);
+
+    if(G.hwDone<G.hwNeeded*.4){ G.stress=Math.min(100,G.stress+8); }
+
+    let adjustedRisk=sleepRisk;
+    if(G.energy<30) adjustedRisk+=25;
+    if(G.caffeineTurns>0) adjustedRisk=Math.max(0,adjustedRisk-20);
+
+    if(Math.random()*100<adjustedRisk){
+      didSleep=true;
+      G.energy=Math.min(100,G.energy+20);
+      G.stress=Math.min(100,G.stress+12);
+      G.asleepTurns++;
+      feedback=`💤 YOU FELL ASLEEP mid-session! Lost productivity. Stress +12.`;
+      fbClass='bad';
+      showSleepAnimation(()=>{ showFeedback(feedback,fbClass); advanceTurn(); });
+      return;
+    } else {
+      feedback+=`🎮 Gamed for ${hrs}hr${hrs>1?'s':''}. Energy -${energyDrain}%.`;
+      if(hrs>=3) feedback+=' Your homework watched in silent judgment.';
+      fbClass=hrs>=3?'warn':'good';
+    }
+
+  } else if(type==='hw'){
+    const hwEff=(mods.hwEfficiency||1)*(G.energy<30?.5:1)*(G.caffeineTurns>0?1.15:1)*(G.inventory.includes('noise_cancel')?1.25:1)*(G.inventory.includes('planner')?1.1:1);
+    const bonus=G.job.mods.hwBonus&&val===2?G.job.mods.hwBonus:G.job.mods.hwBonus&&val===1?G.job.mods.hwBonus*.5:0;
+    const gained=val*hwEff+bonus;
+    G.hwDone=Math.min(G.hwNeeded,G.hwDone+gained);
+    G.energy=Math.max(0,G.energy-(val===2?15:8));
+    G.stress=Math.max(0,G.stress-(val===2?8:4));
+    const effNote=G.energy<30?' (low energy, half efficiency)':G.inventory.includes('noise_cancel')?' (🎧 focused!)':'';
+    feedback=`📚 Studied ${val}h. Completed ${gained.toFixed(1)}h homework${effNote}.`;
+    fbClass='good';
+
+  } else if(type==='work'){
+    const job=G.job;
+    const m=mods.moneyMult||1;
+    let pay=Math.round((job.pay[0]+Math.random()*(job.pay[1]-job.pay[0]))*m);
+    // Delivery tips
+    if(job.mods.tipVariance){
+      const tip=Math.round((Math.random()*2-1)*job.mods.tipVariance);
+      pay+=tip;
+      if(tip>0) feedback+=`🤑 Good tips today (+$${tip})! `;
+      else if(tip<0) feedback+=`😤 Bad tippers today ($${tip}). `;
+    }
+    pay=Math.max(0,pay);
+    G.money+=pay; G.totalEarned+=pay;
+    const energyCost=job.shift===2?25:15;
+    G.energy=Math.max(0,G.energy-energyCost);
+    G.workedThisTurn=true;
+    feedback+=`${job.icon} Worked a shift at ${job.name}. Earned $${pay}. Energy -${energyCost}.`;
+    if(job.shift===2){ G.block++; feedback+=' (Used 2 time blocks)'; }
+    fbClass='good';
+    addLog(`Earned $${pay} at work 💰`,'gold');
+
+  } else if(type==='sleep'){
+    G.energy=Math.min(100,G.energy+50);
+    G.stress=Math.max(0,G.stress-20);
+    feedback='😴 Rested 4 hours. Energy +50, Stress -20.';
+    fbClass='good';
+
+  } else if(type==='caffeine'||type==='caffeine_free'){
+    const boost=type==='caffeine_free'?35:Math.round(30*(mods.caffeineBonus||1));
+    G.energy=Math.min(100,G.energy+boost);
+    G.caffeineTurns=2;
+    feedback=`☕ ${type==='caffeine_free'?'Free staff coffee':'Energy drink'} activated! Energy +${boost}%. Lasts 2 turns.`;
+    fbClass='warn';
+    addLog('Caffeine activated ⚡','warn');
+  }
+
+  if(!didSleep){
+    const hwBehindPct=G.hwDone/G.hwNeeded;
+    if(hwBehindPct<0.3&&(8-G.day)<4){
+      G.stress=Math.min(100,G.stress+6*(mods.stressGainMult||1));
+    }
+    addLog(feedback.substring(0,80),fbClass==='bad'?'bad':fbClass==='good'?'good':'warn');
+    showFeedback(feedback,fbClass);
+    advanceTurn();
+  }
+}
+
+function useItem(id) {
+  const item=SHOP_ITEMS.find(i=>i.id===id);
+  if(!item||!G.consumables[id]||G.consumables[id]<=0) return;
+  document.getElementById('choiceSection').style.display='none';
+  G.consumables[id]--;
+  let feedback='', fbClass='good';
+
+  const eff=item.effect.split(',');
+  eff.forEach(e=>{
+    if(e.startsWith('energy+')){ const v=+e.split('+')[1]; G.energy=Math.min(100,G.energy+v); feedback+=`Energy +${v}. `; }
+    if(e.startsWith('stress-')){ const v=+e.split('-')[1]; G.stress=Math.max(0,G.stress-v); feedback+=`Stress -${v}. `; }
+    if(e.startsWith('caffeine+')){ const v=+e.split('+')[1]; G.caffeineTurns=v; G.energy=Math.min(100,G.energy+40); feedback+=`Caffeine boost ${v} turns! `; fbClass='warn'; }
+    if(e==='scratch+3'){ G.scratchTickets+=3; feedback+='Got 3 scratch tickets! 🎟️ '; }
+  });
+
+  addLog(`Used ${item.name} ${item.icon}`,'good');
+  showFeedback(`${item.icon} ${item.name} used! ${feedback}`,fbClass);
+  advanceTurn();
+}
+
+// ═══════════════════════════════════════════
+// ADVANCE TURN
+// ═══════════════════════════════════════════
+function advanceTurn() {
+  G.block++;
+  if(G.block>3){
+    G.block=0; G.day++;
+    const expected=(G.hwNeeded/7)*G.day;
+    if(G.hwDone<expected*.6){
+      G.stress=Math.min(100,G.stress+10*(G.trait.mods.stressGainMult||1));
+      addLog('Behind on homework — stress creeps up 📈','bad');
+    }
+    G.energy=Math.min(100,G.energy+15);
+  }
+  if(G.day>7){ endGame(); return; }
+  if(G.stress>=100){ endGame('burnout'); return; }
+  if(G.money<0) G.money=0;
+  if(G.energy<=0&&G.block!==0){ G.energy=10; G.stress=Math.min(100,G.stress+15); addLog('Completely crashed 💀','bad'); }
+  document.getElementById('continueBtn').classList.add('show');
+}
+
+// ═══════════════════════════════════════════
+// SHOP
+// ═══════════════════════════════════════════
+function openShop() {
+  document.getElementById('choiceSection').style.display='none';
+  document.getElementById('shopBalance').textContent=G.money;
+  const discount=G.job.mods.shopDiscount||0;
+  const grid=document.getElementById('shopGrid');
+  grid.innerHTML=SHOP_ITEMS.map(item=>{
+    const price=Math.round(item.price*(1-discount));
+    const owned=!item.consumable&&G.inventory.includes(item.id);
+    const cantAfford=G.money<price;
+    let cls=owned?'owned':cantAfford?'cant-afford':'';
+    const qtyLabel=item.consumable&&G.consumables[item.id]?` (×${G.consumables[item.id]})`:'';
+    const discountLabel=discount>0?`<span style="color:var(--success);font-size:10px;"> (-${Math.round(discount*100)}%!)</span>`:'';
+    return `<div class="shop-item ${cls}" onclick="${owned||cantAfford?'':` buyItem('${item.id}')`}">
+      <div class="shop-item-icon">${item.icon}</div>
+      <div class="shop-item-name">${item.name}${qtyLabel}</div>
+      <div class="shop-item-desc">${item.desc}</div>
+      <div class="shop-item-price">${owned?'✅ Owned':`$${price}${discountLabel}`}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('shopModal').classList.add('show');
+}
+
+function buyItem(id) {
+  const item=SHOP_ITEMS.find(i=>i.id===id);
+  if(!item) return;
+  const discount=G.job.mods.shopDiscount||0;
+  const price=Math.round(item.price*(1-discount));
+  if(G.money<price) return;
+  G.money-=price; G.totalSpent+=price;
+  document.getElementById('shopBalance').textContent=G.money;
+
+  if(item.consumable){
+    G.consumables[id]=(G.consumables[id]||0)+1;
+    if(item.effect==='scratch+3') G.scratchTickets+=3;
+    addLog(`Bought ${item.name} for $${price} 🛍️`,'gold');
+  } else {
+    G.inventory.push(id);
+    // Immediate passive effects
+    if(id==='noise_cancel') addLog('🎧 Headphones equipped! HW efficiency +25%','good');
+    if(id==='planner') addLog('📓 Study planner! Stress gains -20%','good');
+    if(id==='blue_light') addLog('🕶️ Blue light glasses! Night gaming sleep risk -20%','good');
+    if(id==='alarm') addLog('⏰ Smart alarm! Sleep risk capped at 50%','good');
+    addLog(`Bought ${item.name} for $${price} 🛍️`,'gold');
+  }
+  openShop(); // refresh
+}
+
+function closeShop() {
+  document.getElementById('shopModal').classList.remove('show');
+  document.getElementById('choiceSection').style.display='block';
+  renderHUD(); renderInventory();
+}
+
+// ═══════════════════════════════════════════
+// SCRATCH TICKETS
+// ═══════════════════════════════════════════
+function openScratch() {
+  document.getElementById('choiceSection').style.display='none';
+  const ticketCost=2;
+  if(G.scratchTickets<=0&&G.money<ticketCost){
+    showFeedback(`💸 Can't afford a scratch ticket! Need $${ticketCost}.`,'bad');
+    document.getElementById('choiceSection').style.display='block';
+    advanceTurn();
+    return;
+  }
+  initScratchTicket();
+  document.getElementById('scratchModal').classList.add('show');
+}
+
+function initScratchTicket() {
+  const luckMult=G.trait.mods.scratchLuckMult||1;
+  // Generate 6 symbols (3 rows × 2 cols visible as 2×3)
+  const symbols=[];
+  for(let i=0;i<6;i++){
+    let totalWeight=SCRATCH_PRIZES.reduce((a,p)=>a+p.weight*( p.value>0?luckMult:1),0);
+    let roll=Math.random()*totalWeight;
+    let chosen=SCRATCH_PRIZES[0];
+    for(const p of SCRATCH_PRIZES){
+      const w=p.weight*(p.value>0?luckMult:1);
+      roll-=w; if(roll<=0){ chosen=p; break; }
+    }
+    symbols.push({...chosen});
+  }
+  scratchState={ cells:symbols, revealed:0, done:false, tickets:G.scratchTickets };
+  renderScratchTicket();
+}
+
+function renderScratchTicket() {
+  document.getElementById('ticketResult').textContent='Scratch all 6 squares to reveal your fate!';
+  const grid=document.getElementById('scratchGrid');
+  grid.innerHTML=scratchState.cells.map((c,i)=>`
+    <div class="scratch-cell" id="sc${i}" onclick="revealCell(${i})">
+      <span style="font-size:22px;display:none" id="sv${i}">${c.symbol}</span>
+      <div class="scratch-cover">SCRATCH</div>
+    </div>`).join('');
+  const hasFree=G.scratchTickets>0;
+  document.getElementById('newTicketBtn').disabled=!hasFree&&G.money<2;
+  document.getElementById('scratchCost').textContent=hasFree?'FREE (owned)':'2';
+  document.getElementById('newTicketCost').textContent=hasFree?'FREE':'2';
+}
+
+function revealCell(i) {
+  if(scratchState.done) return;
+  const cell=document.getElementById('sc'+i);
+  if(cell.classList.contains('revealed')) return;
+  cell.classList.add('revealed');
+  const sv=document.getElementById('sv'+i);
+  sv.style.display='block';
+  scratchState.revealed++;
+  if(scratchState.cells[i].value>0) cell.classList.add('winner');
+
+  if(scratchState.revealed===6){
+    scratchState.done=true;
+    // Find winning combos: 3 of same symbol = win
+    const groups={};
+    scratchState.cells.forEach(c=>{ groups[c.symbol]=(groups[c.symbol]||[]); groups[c.symbol].push(c.value); });
+    let totalWin=0;
+    let resultText='';
+    Object.entries(groups).forEach(([sym,vals])=>{
+      if(vals.length>=3&&vals[0]>0){
+        const win=vals[0]*vals.length;
+        totalWin+=win;
+        resultText+=`3× ${sym} = $${win}! `;
+      }
+    });
+    // Also any single high value
+    const topVal=Math.max(...scratchState.cells.map(c=>c.value));
+    if(totalWin===0&&topVal>0){ totalWin=topVal; resultText=`Best symbol: $${topVal}`; }
+
+    // Deduct ticket
+    if(G.scratchTickets>0) G.scratchTickets--;
+    else G.money=Math.max(0,G.money-2);
+
+    if(totalWin>0){
+      G.money+=totalWin; G.scratchWinnings+=totalWin;
+      document.getElementById('ticketResult').innerHTML=`<span style="color:var(--gold);font-weight:900">🎉 YOU WON $${totalWin}! ${resultText}</span>`;
+      addLog(`Scratch ticket: WON $${totalWin} 🎉`,'gold');
+    } else {
+      document.getElementById('ticketResult').innerHTML=`<span style="color:var(--muted)">Nothing. You've scratched your way to $0. Try again?</span>`;
+      addLog('Scratch ticket: nothing 😔','');
+    }
+    renderHUD();
+  }
+}
+
+function buyNewTicket() {
+  const hasFree=G.scratchTickets>0;
+  if(!hasFree&&G.money<2){ return; }
+  if(!hasFree){ G.money-=2; G.totalSpent+=2; }
+  initScratchTicket();
+  renderHUD();
+}
+
+function closeScratch() {
+  document.getElementById('scratchModal').classList.remove('show');
+  document.getElementById('choiceSection').style.display='block';
+  renderHUD(); renderInventory();
+  advanceTurn();
+}
+
+// ═══════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════
+function advanceHalfTurn(){ /* social media event eats half a turn's energy */ }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function startGame(){ initGame(); showScreen('gameScreen'); renderTurn(); }
+function continueGame(){
+  document.getElementById('continueBtn').classList.remove('show');
+  document.getElementById('feedbackBox').classList.remove('show');
+  document.getElementById('choiceSection').style.display='block';
+  renderTurn();
+}
+function showFeedback(text,cls){
+  const fb=document.getElementById('feedbackBox');
+  fb.textContent=text; fb.className='feedback-box show '+(cls||'');
+}
+function showSleepAnimation(cb){
+  const ov=document.getElementById('sleepOverlay');
+  ov.classList.add('show');
+  setTimeout(()=>{ ov.classList.remove('show'); cb(); },2200);
+}
+function addLog(text,cls=''){
+  eventLog.unshift({text,cls});
+  if(eventLog.length>40) eventLog.pop();
+  document.getElementById('eventLog').innerHTML=eventLog.map(e=>`<div class="log-entry ${e.cls}">${e.text}</div>`).join('');
+}
+function toggleLog(){
+  logOpen=!logOpen;
+  document.getElementById('eventLog').classList.toggle('open',logOpen);
+}
+
+// ═══════════════════════════════════════════
+// ENDING
+// ═══════════════════════════════════════════
+function endGame(forceType) {
+  const hwPct=G.hwDone/G.hwNeeded;
+  const gamePct=G.gamingDone/G.gamingGoal;
+  let ending;
+
+  if(forceType==='burnout'||G.stress>=100){
+    ending={icon:'🤯',color:'#ef4444',title:'BURNOUT ENDING',
+      desc:"Your brain staged a full revolt. You're in the hallway, stress-eating, unable to name your major. The semester is not great. Your employer got a very confused call-in. Steam shows 300+ hours this week.",grade:'F+'};
+  } else if(hwPct>=0.9&&gamePct>=0.85&&G.money>=60){
+    ending={icon:'👑',color:'#fbbf24',title:'LEGENDARY STUDENT',
+      desc:"Homework done, gaming satisfied, bank account healthy. A myth. A legend. Other students whisper your name. Professors study your schedule. You exist outside the laws of physics.",grade:'S+'};
+  } else if(hwPct>=0.9&&gamePct>=0.85){
+    ending={icon:'⚖️',color:'#10b981',title:'PERFECT BALANCE',
+      desc:"You did it. Homework complete, gaming quota hit. You only cried once, which is a personal record. Your planner is suspiciously functional for a student.",grade:'A'};
+  } else if(hwPct>=0.9&&gamePct<0.4){
+    ending={icon:'🏆',color:'#06b6d4',title:'PRODUCTIVITY ENDING',
+      desc:"All assignments done. GPA intact. Gaming chair dusty. Friends stopped texting. You achieved academic success and now sit alone contemplating whether it was worth it. (It was. Maybe.)",grade:'A+'};
+  } else if(hwPct<0.5&&gamePct>=1.0){
+    ending={icon:'🎮',color:'#7c3aed',title:'GAMER ENDING',
+      desc:"You transcended academics. You ARE the game. Your stats are immaculate, your GPA is a single digit, and three professors sent concerned emails. The real homework was the friends we made along the way.",grade:'D (S++ Gaming Rank)'};
+  } else if(G.money>=100&&hwPct>=0.6){
+    ending={icon:'💰',color:'#fbbf24',title:'HUSTLER ENDING',
+      desc:"The grades are fine. The bank account is thriving. You worked every shift, bought scratch tickets, and somehow held it together. Wall Street is calling. Academically.",grade:'B+ (Net Worth: $$$)'};
+  } else if(G.scratchWinnings>=50){
+    ending={icon:'🎰',color:'#fbbf24',title:'JACKPOT ENDING',
+      desc:"The scratch tickets paid off. Like, really paid off. You technically didn't need to study. Your financial advisor (you) is very proud. Your professor is less so.",grade:'C+ (Lucky ★)'};
+  } else if(hwPct<0.5){
+    ending={icon:'💀',color:'#ef4444',title:'FAILURE ENDING',
+      desc:"The week ends. The homework does not. Three missed deadlines, two professors, one very long voicemail from your parents. You stare at the ceiling for a long time.",grade:'F'};
+  } else {
+    ending={icon:'😅',color:'#f59e0b',title:'SURVIVED... BARELY',
+      desc:"You scraped through. Most homework submitted, some gaming enjoyed, wallet mostly intact. A lot of last-minute panic and cold pizza. Next week will be different. (Reader, it was not.)",grade:'C'};
+  }
+
+  showScreen('endScreen');
+  document.getElementById('endContent').innerHTML=`
+    <div class="ending-icon">${ending.icon}</div>
+    <div class="ending-title" style="color:${ending.color}">${ending.title}</div>
+    <div class="ending-desc">${ending.desc}</div>
+    <div class="stats-final">
+      <div class="stat-final-item"><div class="stat-final-label">Homework</div><div class="stat-final-val" style="color:var(--success)">${G.hwDone.toFixed(1)}/${G.hwNeeded}h</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Gaming</div><div class="stat-final-val" style="color:var(--accent)">${G.gamingDone.toFixed(1)}/${G.gamingGoal}h</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Final Cash</div><div class="stat-final-val" style="color:var(--gold)">$${G.money}</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Total Earned</div><div class="stat-final-val" style="color:var(--gold)">$${G.totalEarned}</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Scratch Winnings</div><div class="stat-final-val" style="color:var(--gold)">$${G.scratchWinnings}</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Stress</div><div class="stat-final-val" style="color:${G.stress>60?'var(--danger)':'var(--warn)'}">${G.stress}%</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Fell Asleep</div><div class="stat-final-val" style="color:var(--muted)">${G.asleepTurns}×</div></div>
+      <div class="stat-final-item"><div class="stat-final-label">Grade</div><div class="stat-final-val" style="color:${ending.color}">${ending.grade}</div></div>
+    </div>
+    <button class="btn-primary" onclick="location.reload()">🔄 TRY AGAIN</button>
+    <button class="btn-secondary" onclick="location.reload()">Different Build</button>`;
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+setupTraits();
+setupJobs();
+</script>
+</body>
+</html>
