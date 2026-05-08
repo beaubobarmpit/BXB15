@@ -1,79 +1,146 @@
-body {
+* {
+    box-sizing: border-box;
     margin: 0;
-    background: black;
-    color: white;
+    padding: 0;
 }
 
-/* FULL PAGE LAYOUT */
+body {
+    background-color: #0a0a0f;
+    color: #e8e8ff;
+    font-family: 'Rajdhani', sans-serif;
+}
+
 .page {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    min-height: 100vh;
+    padding-bottom: 4rem;
 }
 
-/* HEADER STAYS ON TOP */
+/* HEADER */
+
 .header {
     text-align: center;
-    padding: 10px 0;
+    padding: 3rem 1rem 2rem;
+    border-bottom: 1px solid #2a2a40;
+    margin-bottom: 2rem;
 }
 
-.header h1,
+.header h1 {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(3rem, 10vw, 6rem);
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #ff3c6e 0%, #7c3cff 50%, #ffd060 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
 .header p {
-    margin: 0;
+    font-size: 1.1rem;
+    color: #7070a0;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 600;
 }
 
-/* GRID TAKES REST OF SCREEN */
+/* MAIN GAME GRID */
+
 .game-grid {
-    flex: 1;
     display: grid;
-
     grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-
-    gap: 10px;
-
-    padding: 10px;
-    box-sizing: border-box;
+    gap: 1.25rem;
+    padding: 0 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
-/* PERFECT SQUARES */
+/* GAME CARD */
+
 .game-card {
-    width: 100%;
-    height: 100%;
-
-    aspect-ratio: 1 / 1;
-
     position: relative;
-    border-radius: 10px;
+    aspect-ratio: 1;
+    background: #1a1a26;
+    border: 1px solid #2a2a40;
+    border-radius: 8px;
     overflow: hidden;
-
-    background: #111;
-
-    transition: transform 0.15s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
 }
 
 .game-card:hover {
-    transform: scale(1.05);
-    z-index: 5;
+    transform: translateY(-4px) scale(1.02);
+    border-color: #ff3c6e;
 }
 
-/* IMAGE */
 .game-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
 }
 
-/* TEXT OVERLAY */
 .overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.35);
-
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 55%);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-end;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
 
-    font-weight: bold;
+.game-card:hover .overlay {
+    opacity: 1;
+}
+
+/* EXTRAS BUTTON */
+
+.extras-btn-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 2.5rem 0 1rem;
+}
+
+.extras-btn {
+    background: transparent;
+    border: 2px solid #7c3cff;
+    color: #7c3cff;
+    font-family: 'Black Ops One', cursive;
     font-size: 1rem;
+    letter-spacing: 0.15em;
+    padding: 0.75rem 2.5rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.extras-btn:hover {
+    background: #7c3cff;
+    color: #fff;
+}
+
+.extras-arrow {
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}
+
+/* EXTRAS GRID */
+
+.extras-grid {
+    display: none;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.25rem;
+    padding: 1rem 1.5rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.extras-grid.open {
+    display: grid;
 }
