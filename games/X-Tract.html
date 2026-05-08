@@ -153,26 +153,38 @@
             display: flex;
         }
         .game-popup {
-            background: linear-gradient(135deg, #1a4d2e 0%, #0d2818 100%);
-            border: 3px solid #00ff00;
             border-radius: 14px;
             padding: 40px;
             text-align: center;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-            color: #00ff00;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
         }
+
+        .game-popup.win {
+            background: linear-gradient(135deg, #1a4d2e 0%, #0d2818 100%);
+            border: 3px solid #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+        }
+
+        .game-popup.lose {
+            background: linear-gradient(135deg, #4d1a1a 0%, #280d0d 100%);
+            border: 3px solid #ff0000;
+            color: #ff4444;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+        }
+
         .game-popup h1 {
             font-size: 2.5rem;
             margin: 0 0 20px;
         }
+
         .game-popup p {
             font-size: 1.2rem;
             margin: 0 0 30px;
         }
+
         .game-popup button {
             padding: 12px 32px;
-            background-color: #00ff00;
-            color: #0d2818;
             border: none;
             border-radius: 4px;
             font-weight: 700;
@@ -180,9 +192,25 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .game-popup button:hover {
+
+        .game-popup.win button {
+            background-color: #00ff00;
+            color: #0d2818;
+        }
+
+        .game-popup.win button:hover {
             background-color: #00dd00;
             box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
+
+        .game-popup.lose button {
+            background-color: #ff4444;
+            color: #280d0d;
+        }
+
+        .game-popup.lose button:hover {
+            background-color: #ff2222;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
         }
     </style>
 </head>
@@ -248,37 +276,61 @@
             }
         });
 
+        let lastMissed = false;
+
         canvas.addEventListener('mousedown', () => {
             isDrawing = true;
+            lastMissed = false;
         });
 
         canvas.addEventListener('mouseup', () => {
             isDrawing = false;
+            lastMissed = false;
         });
 
         canvas.addEventListener('mouseleave', () => {
             mouseX = -1000;
             mouseY = -1000;
             isDrawing = false;
+            lastMissed = false;
         });
 
         function recordTracedPoint(x, y) {
-            const dx = x - circleX;
-            const dy = y - circleY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (Math.abs(distance - circleRadius) < 20) {
-                const angle = Math.atan2(dy, dx);
-                const key = Math.round(angle * 100);
-                
-                if (!tracedPoints.has(key)) {
-                    tracedPoints.add(key);
-                    blood = Math.max(0, blood - 0.5);
-                    
-                    if (blood <= 0) {
-                        endGame(false);
-                    }
+            const hitRadius = 16;
+            const missRadius = 40;
+            let hitSomething = false;
+            let newTrace = false;
+
+            for (let i = 0; i < circleGuidePoints.length; i++) {
+                const point = circleGuidePoints[i];
+                const dx = x - point.x;
+                const dy = y - point.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance <= hitRadius && !tracedPoints.has(i)) {
+                    tracedPoints.add(i);
+                    blood = Math.max(0, blood - 1);
+                    newTrace = true;
+                    hitSomething = true;
+                    break;
                 }
+
+                if (distance <= missRadius) {
+                    hitSomething = true;
+                }
+            }
+
+            if (!hitSomething && isDrawing && !newTrace) {
+                if (!lastMissed) {
+                    blood = Math.max(0, blood - 2);
+                    lastMissed = true;
+                }
+            } else {
+                lastMissed = false;
+            }
+
+            if (blood <= 0) {
+                endGame(false);
             }
         }
 
@@ -313,19 +365,18 @@
             ctx.setLineDash([]);
             ctx.beginPath();
 
+            const sortedIndices = Array.from(tracedPoints).sort((a, b) => a - b);
             let firstPoint = true;
-            const sortedAngles = Array.from(tracedPoints).sort((a, b) => a - b);
-            
-            for (const angleKey of sortedAngles) {
-                const angle = angleKey / 100;
-                const x = circleX + Math.cos(angle) * circleRadius;
-                const y = circleY + Math.sin(angle) * circleRadius;
-                
+
+            for (const index of sortedIndices) {
+                const point = circleGuidePoints[index];
+                if (!point) continue;
+
                 if (firstPoint) {
-                    ctx.moveTo(x, y);
+                    ctx.moveTo(point.x, point.y);
                     firstPoint = false;
                 } else {
-                    ctx.lineTo(x, y);
+                    ctx.lineTo(point.x, point.y);
                 }
             }
             ctx.stroke();
@@ -344,37 +395,13 @@
 
         function checkWinCondition() {
             if (circleGuidePoints.length === 0) return;
-            const requiredPercentage = 0.80;
+            const requiredPercentage = 1;
             const tracedPercentage = tracedPoints.size / circleGuidePoints.length;
             
             if (tracedPercentage >= requiredPercentage && !gameWon) {
                 gameWon = true;
                 endGame(true);
             }
-        }
-
-        function drawCursor(x, y) {
-            const cursorSize = 100;
-            const tipOffset = 5;
-            const borderWidth = 2;
-
-            ctx.save();
-            ctx.translate(x, y);
-
-            for (let dx = -borderWidth; dx <= borderWidth; dx++) {
-                for (let dy = -borderWidth; dy <= borderWidth; dy++) {
-                    if (dx === 0 && dy === 0) continue;
-                    ctx.drawImage(xCursorImg, -tipOffset + dx, -tipOffset + dy, cursorSize, cursorSize);
-                }
-            }
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillStyle = 'black';
-            ctx.fillRect(-tipOffset - borderWidth, -tipOffset - borderWidth, cursorSize + 2 * borderWidth, cursorSize + 2 * borderWidth);
-            ctx.globalCompositeOperation = 'source-over';
-
-            ctx.drawImage(xCursorImg, -tipOffset, -tipOffset, cursorSize, cursorSize);
-
-            ctx.restore();
         }
 
         function gameLoop() {
@@ -417,14 +444,27 @@
 
         function endGame(won) {
             gameStarted = false;
+
             const popup = document.getElementById('gameOverScreen');
+            const popupBox = popup.querySelector('.game-popup');
+
+            // Remove previous state classes
+            popupBox.classList.remove('win', 'lose');
+
             if (won) {
+                popupBox.classList.add('win');
+
                 document.getElementById('popupTitle').textContent = 'Success!';
-                document.getElementById('popupMessage').textContent = 'You\'ve successfully extracted the appendix!';
+                document.getElementById('popupMessage').textContent =
+                    'You\'ve successfully extracted the appendix!';
             } else {
+                popupBox.classList.add('lose');
+
                 document.getElementById('popupTitle').textContent = 'Patient Expired';
-                document.getElementById('popupMessage').textContent = 'You ran out of blood! Try again.';
+                document.getElementById('popupMessage').textContent =
+                    'You ran out of blood! Try again.';
             }
+
             popup.classList.add('show');
         }
 
@@ -463,19 +503,7 @@
 
         document.getElementById('startGameBtn').addEventListener('click', hideTitleScreen);
         document.getElementById('startGameBtn2').addEventListener('click', startMission);
-        function startMission() {
-            titleScreen.style.display = 'none';
-            const gamecard = document.querySelector('.gamecard');
-            gamecard.classList.add('hidden');
-            gameStarted = true;
-            gameLoop();
-        }
 
-        function hideTitleScreen() {
-            titleScreen.style.display = 'none';
-            gameStarted = true;
-            gameLoop();
-        }
     </script>
 </body>
 </html>
