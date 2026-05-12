@@ -16,6 +16,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #e0e0e0;
         }
+
         .container-fluid {
             display: flex;
             flex-direction: column;
@@ -27,6 +28,7 @@
             padding: 20px;
             box-sizing: border-box;
         }
+
         canvas {
             border: 3px solid #4a9eff;
             background-color: #87CEEB;
@@ -34,6 +36,7 @@
             border-radius: 4px;
             cursor: none;
         }
+
         #titleScreen {
             position: fixed;
             inset: 0;
@@ -43,6 +46,7 @@
             background: rgba(10, 14, 39, 0.95);
             z-index: 100;
         }
+
         #titleScreen .title-card {
             width: min(460px, calc(100% - 40px));
             padding: 36px 28px;
@@ -52,17 +56,20 @@
             box-shadow: 0 0 30px rgba(74, 158, 255, 0.4);
             text-align: center;
         }
+
         #titleScreen h1 {
             margin: 0 0 18px;
             font-size: 2.2rem;
             color: #4a9eff;
         }
+
         #titleScreen p {
             margin: 0 0 28px;
             color: #d1d7ff;
             font-size: 16px;
             line-height: 1.5;
         }
+
         #titleScreen button {
             background-color: #4a9eff;
             color: #0a0e27;
@@ -74,10 +81,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+
         #titleScreen button:hover {
             background-color: #6bb3ff;
             box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
         }
+
         .back-button {
             position: fixed;
             top: 20px;
@@ -93,10 +102,12 @@
             text-decoration: none;
             font-size: 14px;
         }
+
         .back-button:hover {
             background-color: #6bb3ff;
             box-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
         }
+
         .instructions {
             max-width: 640px;
             text-align: center;
@@ -105,6 +116,7 @@
             line-height: 1.6;
             margin: 0 auto;
         }
+
         .gamecard {
             width: 100%;
             max-width: 820px;
@@ -116,14 +128,17 @@
             text-align: center;
             transition: all 0.3s ease;
         }
+
         .gamecard.hidden {
             display: none;
         }
+
         .gamecard h2 {
             margin: 0 0 12px;
             color: #a8c8ff;
             font-size: 1.4rem;
         }
+
         .start-button {
             margin-top: 8px;
             padding: 12px 30px;
@@ -136,10 +151,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+
         .start-button:hover {
             background-color: #6bb3ff;
             box-shadow: 0 0 15px rgba(74, 158, 255, 0.45);
         }
+
         #gameOverScreen {
             position: fixed;
             inset: 0;
@@ -149,9 +166,11 @@
             background: rgba(0, 0, 0, 0.8);
             z-index: 50;
         }
+
         #gameOverScreen.show {
             display: flex;
         }
+
         .game-popup {
             border-radius: 14px;
             padding: 40px;
@@ -214,60 +233,102 @@
         }
     </style>
 </head>
+
 <body>
+
     <div id="titleScreen">
         <div class="title-card">
             <h1>X-Traction</h1>
-            <p>Congratulations chud! You have been randomly selected to perform an appendectomy! It's a pretty simple procedure so I think you got this.</p>
+            <p>
+                Congratulations chud! You have been randomly selected
+                to perform an appendectomy! It's a pretty simple
+                procedure so I think you got this.
+            </p>
             <button id="startGameBtn">Begin Operation</button>
         </div>
     </div>
+
     <div class="container-fluid">
+
         <a href="../index.html" class="back-button">← Back</a>
+
         <div class="gamecard">
             <h2>Mission Briefing</h2>
-            <p class="instructions">Click and drag to cut up the guy (identity withheld for anonymity) and try not to cut where there isnt an appendix.</p>
-            <button class="start-button" id="startGameBtn2">Start Mission</button>
+
+            <p class="instructions">
+                Click and drag to cut up the guy
+                (identity withheld for anonymity)
+                and try not to cut where there isnt an appendix.
+            </p>
+
         </div>
+
         <canvas id="gameCanvas" width="800" height="420"></canvas>
+
         <div id="gameOverScreen">
             <div class="game-popup">
                 <h1 id="popupTitle">Success!</h1>
-                <p id="popupMessage">You've successfully completed the operation!</p>
-                <button onclick="location.reload()">Play Again</button>
+
+                <p id="popupMessage">
+                    You've successfully completed the operation!
+                </p>
+
+                <button onclick="location.reload()">
+                    Play Again
+                </button>
             </div>
         </div>
+
     </div>
+
     <script>
+
         const titleScreen = document.getElementById('titleScreen');
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Load images
+        // =========================
+        // LOAD IMAGES
+        // =========================
+
         const xCursorImg = new Image();
         const deadXImg = new Image();
+        const tableImg = new Image();
+
         xCursorImg.src = '../images/XCursor.png';
         deadXImg.src = '../images/patientX.png';
+        tableImg.src = '../images/table.png';
 
-        // Game state
+        // =========================
+        // GAME STATE
+        // =========================
+ 
         let mouseX = 0;
         let mouseY = 0;
+
         let gameStarted = false;
         let isDrawing = false;
         let blood = 100;
         let gameWon = false;
+
         let tracedPoints = new Set();
+
         const circleGuidePoints = [];
-        
-        // Circle parameters
-        const circleX = canvas.width / 2;
-        const circleY = canvas.height / 2;
-        const circleRadius = 100;
+
+        const circleX = canvas.width * 3 / 4 - 60;
+        const circleY = canvas.height / 2 + 15;
+
+        const circleRadius = 75;
         const dotSpacing = 8;
 
-        // Mouse event listeners
+        // =========================
+        // MOUSE EVENTS
+        // =========================
+
         canvas.addEventListener('mousemove', (e) => {
+
             const rect = canvas.getBoundingClientRect();
+
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
 
@@ -289,29 +350,44 @@
         });
 
         canvas.addEventListener('mouseleave', () => {
+
             mouseX = -1000;
             mouseY = -1000;
+
             isDrawing = false;
             lastMissed = false;
         });
 
+        // =========================
+        // TRACE DETECTION
+        // =========================
+
         function recordTracedPoint(x, y) {
+
             const hitRadius = 16;
             const missRadius = 40;
+
             let hitSomething = false;
             let newTrace = false;
 
             for (let i = 0; i < circleGuidePoints.length; i++) {
+
                 const point = circleGuidePoints[i];
+
                 const dx = x - point.x;
                 const dy = y - point.y;
+
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance <= hitRadius && !tracedPoints.has(i)) {
+
                     tracedPoints.add(i);
-                    blood = Math.max(0, blood - 1);
+
+                    blood = Math.max(0, blood - 1.5);
+
                     newTrace = true;
                     hitSomething = true;
+
                     break;
                 }
 
@@ -321,11 +397,16 @@
             }
 
             if (!hitSomething && isDrawing && !newTrace) {
+
                 if (!lastMissed) {
-                    blood = Math.max(0, blood - 2);
+
+                    blood = Math.max(0, blood - 5);
+
                     lastMissed = true;
                 }
+
             } else {
+
                 lastMissed = false;
             }
 
@@ -334,176 +415,344 @@
             }
         }
 
+        // =========================
+        // GUIDE POINTS
+        // =========================
+
         function generateCircleGuidePoints() {
+
             circleGuidePoints.length = 0;
-            const dotCount = Math.floor(2 * Math.PI * circleRadius / dotSpacing);
+
+            const dotCount =
+                Math.floor(2 * Math.PI * circleRadius / dotSpacing);
+
             for (let i = 0; i < dotCount; i++) {
-                const angle = (i / dotCount) * Math.PI * 2;
-                const x = circleX + Math.cos(angle) * circleRadius;
-                const y = circleY + Math.sin(angle) * circleRadius;
+
+                const angle =
+                    (i / dotCount) * Math.PI * 2;
+
+                const x =
+                    circleX + Math.cos(angle) * circleRadius;
+
+                const y =
+                    circleY + Math.sin(angle) * circleRadius;
+
                 circleGuidePoints.push({ x, y, angle });
             }
         }
 
         function drawCircleGuide() {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
             ctx.lineWidth = 2;
+
             ctx.setLineDash([5, 5]);
+
             ctx.beginPath();
-            ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2);
+
+            ctx.arc(
+                circleX,
+                circleY,
+                circleRadius,
+                0,
+                Math.PI * 2
+            );
+
             ctx.stroke();
+
             ctx.setLineDash([]);
         }
 
         function drawTracedPath() {
+
             if (tracedPoints.size === 0) return;
 
             ctx.strokeStyle = '#00ff00';
+
             ctx.lineWidth = 4;
+
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.setLineDash([]);
+
             ctx.beginPath();
 
-            const sortedIndices = Array.from(tracedPoints).sort((a, b) => a - b);
+            const sortedIndices =
+                Array.from(tracedPoints).sort((a, b) => a - b);
+
             let firstPoint = true;
 
             for (const index of sortedIndices) {
+
                 const point = circleGuidePoints[index];
+
                 if (!point) continue;
 
                 if (firstPoint) {
+
                     ctx.moveTo(point.x, point.y);
+
                     firstPoint = false;
+
                 } else {
+
                     ctx.lineTo(point.x, point.y);
                 }
             }
+
             ctx.stroke();
         }
 
+        // =========================
+        // UI
+        // =========================
+
         function drawUI() {
+
             ctx.fillStyle = '#ff0000';
             ctx.font = '24px Arial';
+
             ctx.fillText(`Blood: ${Math.ceil(blood)}`, 20, 40);
 
-            const percentage = circleGuidePoints.length > 0 ? (tracedPoints.size / circleGuidePoints.length) * 100 : 0;
+            const percentage =
+                circleGuidePoints.length > 0
+                    ? (tracedPoints.size / circleGuidePoints.length) * 100
+                    : 0;
+
             ctx.fillStyle = '#00ff00';
             ctx.font = '16px Arial';
-            ctx.fillText(`Traced: ${Math.round(percentage)}%`, 20, 70);
+
+            ctx.fillText(
+                `Traced: ${Math.round(percentage)}%`,
+                20,
+                70
+            );
         }
 
+        // =========================
+        // WIN CONDITION
+        // =========================
+
         function checkWinCondition() {
+
             if (circleGuidePoints.length === 0) return;
-            const requiredPercentage = 1;
-            const tracedPercentage = tracedPoints.size / circleGuidePoints.length;
-            
+
+            const requiredPercentage = .95;
+
+            const tracedPercentage =
+                tracedPoints.size / circleGuidePoints.length;
+
             if (tracedPercentage >= requiredPercentage && !gameWon) {
+
                 gameWon = true;
+
                 endGame(true);
             }
         }
 
+        // =========================
+        // GAME LOOP
+        // =========================
+
         function gameLoop() {
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // =========================
+            // DRAW ROTATED TABLE
+            // =========================
+
+            if (tableImg.complete) {
+
+                ctx.save();
+
+                ctx.translate(
+                    canvas.width / 2,
+                    canvas.height / 2
+                );
+
+                // Rotate table 90 degrees
+                ctx.rotate(Math.PI / 2);
+
+                // Bigger rotated table
+                const tableWidth = 420;
+                const tableHeight = 760;
+
+                ctx.drawImage(
+                    tableImg,
+                    -tableWidth / 2,
+                    -tableHeight / 2,
+                    tableWidth,
+                    tableHeight
+                );
+
+                ctx.restore();
+            }
+
+            // =========================
+            // DRAW BIGGER ROTATED PATIENT
+            // =========================
+
             if (deadXImg.complete) {
-                ctx.drawImage(deadXImg, 0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+
+                ctx.translate(
+                    canvas.width / 2,
+                    canvas.height / 2
+                );
+
+                // Rotate patient 90 degrees
+                ctx.rotate(Math.PI / 2);
+
+                // MUCH larger patient
+                const patientWidth = 650;
+                const patientHeight = 1000;
+
+                ctx.drawImage(
+                    deadXImg,
+                    -patientWidth / 2,
+                    -patientHeight / 2,
+                    patientWidth,
+                    patientHeight
+                );
+
+                ctx.restore();
             }
 
             if (gameStarted) {
+
                 drawCircleGuide();
+
                 drawTracedPath();
+
                 drawUI();
+
                 checkWinCondition();
             }
 
             if (xCursorImg.complete && mouseX >= 0) {
+
                 drawCursor(mouseX, mouseY);
             }
 
             if (gameStarted) {
+
                 requestAnimationFrame(gameLoop);
             }
         }
 
+        // =========================
+        // GAME FLOW
+        // =========================
+
         function hideTitleScreen() {
+
             titleScreen.style.display = 'none';
+
             gameStarted = true;
+
+            startMission();
+
             gameLoop();
         }
 
         function startMission() {
-            titleScreen.style.display = 'none';
-            const gamecard = document.querySelector('.gamecard');
-            gamecard.classList.add('hidden');
+
+            titleScreen.style.display = 'none'
+
             generateCircleGuidePoints();
+
             gameStarted = true;
+
             gameLoop();
         }
 
         function endGame(won) {
+
             gameStarted = false;
 
-            const popup = document.getElementById('gameOverScreen');
-            const popupBox = popup.querySelector('.game-popup');
+            const popup =
+                document.getElementById('gameOverScreen');
 
-            // Remove previous state classes
+            const popupBox =
+                popup.querySelector('.game-popup');
+
             popupBox.classList.remove('win', 'lose');
 
             if (won) {
+
                 popupBox.classList.add('win');
 
-                document.getElementById('popupTitle').textContent = 'Success!';
-                document.getElementById('popupMessage').textContent =
+                document.getElementById('popupTitle')
+                    .textContent = 'Success!';
+
+                document.getElementById('popupMessage')
+                    .textContent =
                     'You\'ve successfully extracted the appendix!';
+
             } else {
+
                 popupBox.classList.add('lose');
 
-                document.getElementById('popupTitle').textContent = 'Patient Expired';
-                document.getElementById('popupMessage').textContent =
+                document.getElementById('popupTitle')
+                    .textContent = 'Patient Exploded';
+
+                document.getElementById('popupMessage')
+                    .textContent =
                     'You ran out of blood! Try again.';
             }
 
             popup.classList.add('show');
         }
 
-        document.getElementById('startGameBtn').addEventListener('click', hideTitleScreen);
-        document.getElementById('startGameBtn2').addEventListener('click', startMission);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw background image
-        if (deadXImg.complete) {
-            ctx.drawImage(deadXImg, 0, 0, canvas.width, canvas.height);
-        }
-
-        // Draw custom cursor (XCursor)
-        if (xCursorImg.complete && mouseX >= 0) {
-            drawCursor(mouseX, mouseY);
-        }
-
-        if (gameStarted) {
-            requestAnimationFrame(gameLoop);
-        }
-        
+        // =========================
+        // CURSOR
+        // =========================
 
         function drawCursor(x, y) {
-            const cursorSize = 100; // Size of the cursor image
-            const tipOffset = 5; // Distance from image edge to tip point
+
+            const cursorSize = 100;
+
+            const tipOffset = 5;
 
             ctx.save();
+
             ctx.translate(x, y);
 
-            // Draw the cursor image scaled down, with tip at cursor position
-            ctx.drawImage(xCursorImg, -tipOffset, -tipOffset, cursorSize, cursorSize);
+            ctx.drawImage(
+                xCursorImg,
+                -tipOffset,
+                -tipOffset,
+                cursorSize,
+                cursorSize
+            );
 
             ctx.restore();
         }
 
-        document.getElementById('startGameBtn').addEventListener('click', hideTitleScreen);
-        document.getElementById('startGameBtn2').addEventListener('click', startMission);
+        // =========================
+        // BUTTONS
+        // =========================
+
+        document.getElementById('startGameBtn')
+            .addEventListener('click', hideTitleScreen);
+
+        // =========================
+        // INITIAL DRAW
+        // =========================
+
+        if (tableImg.complete) {
+
+            ctx.drawImage(
+                tableImg,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+        }
 
     </script>
+
 </body>
 </html>
