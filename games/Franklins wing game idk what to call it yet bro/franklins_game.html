@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Franklin's Clicker Kitchen</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+  :root {
+    --yellow: #FFD93D;
+    --orange: #FF6B35;
+    --red: #C0392B;
+    --green: #27AE60;
+    --teal: #1ABC9C;
+    --blue: #3498DB;
+    --purple: #9B59B6;
+    --dark: #1a1a2e;
+    --panel: #16213e;
+    --card: #0f3460;
+    --light: #e8f4fd;
+    --text: #ffffff;
+    --gold: #f7c948;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(255,107,53,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(52,152,219,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(255,217,61,0.05) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  #app { position: relative; z-index: 1; }
+
+  header {
+    background: linear-gradient(135deg, #FF6B35 0%, #FFD93D 100%);
+    padding: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(255,107,53,0.5);
+    position: relative; overflow: hidden;
+  }
+  header::before {
+    content: '🍳🔥🍔🌮🍟';
+    position: absolute; right: 10px; font-size: 2rem;
+    opacity: 0.2; letter-spacing: 10px;
+  }
+  .header-logo { display: flex; align-items: center; gap: 12px; padding: 14px 24px; }
+  .franklin-face {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--dark); border: 3px solid white;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+  }
+  .franklin-face img { width: 100%; height: 100%; object-fit: cover; }
+  header h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem; color: white;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  }
+  .header-stats {
+    display: flex; gap: 16px; padding: 14px 24px;
+    background: rgba(0,0,0,0.2); height: 100%; align-items: center;
+  }
+  .stat-pill {
+    background: rgba(255,255,255,0.25);
+    border-radius: 20px; padding: 6px 14px;
+    font-weight: 800; font-size: 0.9rem;
+    display: flex; align-items: center; gap: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    gap: 0;
+    height: calc(100vh - 82px);
+  }
+
+  /* LEFT PANEL */
+  .customers-panel {
+    background: var(--panel);
+    border-right: 2px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem; padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 8px;
+    color: var(--yellow);
+  }
+  .customers-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .customer-card {
+    background: var(--card); border-radius: 14px; padding: 12px;
+    border: 2px solid rgba(255,255,255,0.06);
+    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .customer-card:hover { transform: translateX(4px); border-color: var(--yellow); }
+  .customer-card.active { border-color: var(--orange); background: rgba(255,107,53,0.15); }
+  .customer-top { display: flex; align-items: center; gap: 10px; }
+  .customer-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    overflow: hidden; border: 2px solid rgba(255,255,255,0.2);
+    flex-shrink: 0; background: var(--dark);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .customer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .customer-info { flex: 1; min-width: 0; }
+  .customer-name { font-weight: 800; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .customer-order { font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .patience-bar { margin-top: 8px; height: 5px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+  .patience-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--green), var(--yellow)); transition: width 0.5s; width: 100%; }
+  .patience-fill.warn { background: linear-gradient(90deg, var(--orange), var(--red)); }
+  .customer-tip { position: absolute; top: 8px; right: 8px; font-size: 0.7rem; font-weight: 800; background: var(--gold); color: var(--dark); border-radius: 10px; padding: 2px 6px; }
+
+  /* CENTER */
+  .kitchen-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .kitchen-tabs { display: flex; background: var(--panel); border-bottom: 2px solid rgba(255,255,255,0.08); }
+  .ktab {
+    padding: 12px 22px; cursor: pointer; font-weight: 700; font-size: 0.9rem;
+    color: rgba(255,255,255,0.5); border-bottom: 3px solid transparent; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ktab:hover { color: rgba(255,255,255,0.8); }
+  .ktab.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+  .kitchen-view { flex: 1; overflow-y: auto; padding: 20px; }
+
+  .order-station { display: none; }
+  .order-station.show { display: block; }
+
+  .current-order-card {
+    background: var(--panel); border-radius: 18px; padding: 20px;
+    border: 2px solid rgba(255,107,53,0.3); margin-bottom: 20px;
+  }
+  .order-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .order-avatar { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 3px solid var(--orange); background: var(--dark); }
+  .order-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .order-details h2 { font-family: 'Fredoka One', cursive; font-size: 1.3rem; }
+  .order-details p { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+  .order-items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .order-item {
+    background: var(--card); border-radius: 12px; padding: 12px;
+    display: flex; align-items: center; gap: 10px;
+    border: 2px solid rgba(255,255,255,0.06); transition: border-color 0.2s;
+  }
+  .order-item.cooked { border-color: var(--green); background: rgba(39,174,96,0.15); }
+  .order-item-label { font-size: 0.82rem; font-weight: 700; }
+  .order-item-sub { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+  .order-item-status { font-size: 0.7rem; color: var(--green); font-weight: 800; margin-top: 2px; }
+
+  /* COOK TAB — MINIGAME COOKING */
+  .cook-intro {
+    background: var(--panel); border-radius: 18px; padding: 24px;
+    border: 2px solid rgba(255,255,255,0.08); text-align: center; margin-bottom: 16px;
+  }
+  .cook-intro h3 { font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: var(--yellow); margin-bottom: 8px; }
+  .cook-intro p { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+
+  .cook-queue { display: flex; flex-direction: column; gap: 12px; }
+  .cook-item-card {
+    background: var(--panel); border-radius: 16px; padding: 16px;
+    border: 2px solid rgba(255,255,255,0.08); transition: all 0.2s;
+  }
+  .cook-item-card.cooking { border-color: var(--orange); background: rgba(255,107,53,0.08); }
+  .cook-item-card.done { border-color: var(--green); background: rgba(39,174,96,0.08); opacity: 0.7; }
+  .cook-item-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .cook-item-top img { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; background: var(--card); padding: 4px; }
+  .cook-item-name { font-family: 'Fredoka One', cursive; font-size: 1rem; }
+  .cook-item-mechanic { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .cook-item-badge {
+    margin-left: auto; font-size: 0.75rem; font-weight: 800;
+    padding: 4px 10px; border-radius: 10px;
+  }
+  .badge-ready { background: rgba(255,107,53,0.3); color: var(--orange); }
+  .badge-cooking { background: rgba(255,217,61,0.2); color: var(--yellow); }
+  .badge-done { background: rgba(39,174,96,0.3); color: var(--green); }
+
+  /* MINIGAME AREAS */
+  .mg-cook-area { display: none; }
+  .mg-cook-area.active { display: block; }
+
+  /* Sequence */
+  .seq-display { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+  .seq-key {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: var(--card); border: 2px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; transition: all 0.15s;
+  }
+  .seq-key.active { border-color: var(--orange); background: rgba(255,107,53,0.3); box-shadow: 0 0 10px rgba(255,107,53,0.5); }
+  .seq-key.done { border-color: var(--green); background: rgba(39,174,96,0.3); }
+  .seq-key.wrong { border-color: var(--red); background: rgba(192,57,43,0.3); animation: shakeKey 0.3s; }
+  @keyframes shakeKey { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  /* Hold */
+  .hold-zone { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0; }
+  .hold-circle {
+    width: 90px; height: 90px; border-radius: 50%;
+    border: 4px solid var(--orange); background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; transition: all 0.1s;
+    overflow: hidden;
+  }
+  .hold-circle:active, .hold-circle.held { background: rgba(255,107,53,0.35); transform: scale(0.94); border-color: var(--yellow); }
+  .hold-circle img { width: 60px; height: 60px; object-fit: contain; pointer-events: none; }
+
+  /* Trace */
+  #cook-trace-canvas {
+    border: 2px solid rgba(255,255,255,0.1); border-radius: 12px;
+    background: rgba(0,0,0,0.3); cursor: crosshair; display: block; margin: 0 auto;
+  }
+
+  /* Shared progress bar */
+  .cook-progress-wrap {
+    height: 12px; background: rgba(255,255,255,0.08);
+    border-radius: 99px; overflow: hidden; margin: 8px 0;
+  }
+  .cook-progress-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--orange), var(--yellow));
+    width: 0%; transition: width 0.1s;
+  }
+  .cook-hint { font-size: 0.8rem; color: rgba(255,255,255,0.55); text-align: center; margin-bottom: 6px; }
+  .cook-status { font-size: 0.85rem; font-weight: 700; text-align: center; min-height: 20px; color: var(--yellow); }
+
+  .start-cook-btn {
+    width: 100%; padding: 11px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--orange), #FF4500);
+    border: none; color: white; font-family: 'Fredoka One', cursive;
+    font-size: 1rem; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(255,107,53,0.35);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .start-cook-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,107,53,0.45); }
+  .start-cook-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .serve-btn {
+    width: 100%; margin-top: 14px;
+    background: linear-gradient(135deg, var(--green), #1a8a4a);
+    border: none; border-radius: 14px; padding: 14px;
+    font-family: 'Fredoka One', cursive; font-size: 1.2rem;
+    color: white; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(39,174,96,0.4);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .serve-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(39,174,96,0.5); }
+  .serve-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; background: rgba(255,255,255,0.1); box-shadow: none; }
+
+  /* MINIGAMES TAB */
+  .minigame-station { display: none; }
+  .minigame-station.show { display: block; }
+  .minigame-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .minigame-card {
+    background: var(--panel); border-radius: 16px; padding: 18px;
+    border: 2px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .minigame-card:hover { border-color: var(--teal); transform: translateY(-3px); }
+  .minigame-card .mg-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .minigame-card h4 { font-family: 'Fredoka One', cursive; color: var(--yellow); margin-bottom: 4px; }
+  .minigame-card p { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+  .active-minigame { background: var(--panel); border-radius: 18px; padding: 24px; border: 2px solid var(--teal); display: none; }
+  .active-minigame.show { display: block; }
+  .mg-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .mg-header h3 { font-family: 'Fredoka One', cursive; font-size: 1.2rem; }
+  .close-mg { background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+
+  #whack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+  .whack-hole {
+    aspect-ratio: 1; border-radius: 50%; background: rgba(0,0,0,0.4);
+    border: 3px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; cursor: pointer; transition: all 0.15s;
+  }
+  .whack-hole.has-mole { background: rgba(255,107,53,0.3); border-color: var(--orange); }
+  .whack-hole:active { transform: scale(0.92); }
+
+  .fry-area { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px; text-align: center; margin: 12px 0; }
+  .fry-basket {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--orange); margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; cursor: pointer; transition: all 0.2s; border: 4px solid var(--gold);
+  }
+  .fry-basket:hover { transform: scale(1.1); }
+  .fry-progress { height: 12px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+  .fry-fill { height: 100%; border-radius: 99px; width: 0%; transition: width 0.1s; }
+
+  /* RIGHT PANEL */
+  .score-panel { background: var(--panel); border-left: 2px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .score-section { padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .big-score {
+    text-align: center; padding: 20px 14px;
+    background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,217,61,0.1));
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .score-num { font-family: 'Fredoka One', cursive; font-size: 3rem; color: var(--gold); text-shadow: 0 0 20px rgba(247,201,72,0.5); line-height: 1; }
+  .score-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .level-bar { margin-top: 12px; }
+  .level-label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px; }
+  .level-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+  .level-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--orange), var(--yellow)); transition: width 0.5s; }
+  .recent-list { flex: 1; overflow-y: auto; padding: 12px; }
+  .recent-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); margin-bottom: 6px; animation: slideIn 0.3s ease; }
+  .recent-avatar { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: var(--dark); flex-shrink: 0; }
+  .recent-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .recent-info { flex: 1; font-size: 0.75rem; }
+  .recent-name { font-weight: 700; }
+  .recent-score { color: rgba(255,255,255,0.5); }
+  .recent-tip { font-weight: 800; font-size: 0.8rem; }
+  .tip-great { color: var(--gold); } .tip-ok { color: rgba(255,255,255,0.5); } .tip-bad { color: var(--red); }
+
+  /* TOASTS */
+  .toast-container { position: fixed; top: 90px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--card); border-radius: 12px; padding: 12px 18px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1); max-width: 260px; border-left: 4px solid var(--yellow); }
+  .toast.success { border-left-color: var(--green); }
+  .toast.error { border-left-color: var(--red); }
+  .toast.info { border-left-color: var(--blue); }
+
+  /* OVERLAY */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .modal { background: var(--panel); border-radius: 24px; padding: 32px; max-width: 440px; width: 90%; border: 2px solid rgba(255,255,255,0.1); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); text-align: center; }
+  .overlay.show .modal { transform: scale(1); }
+  .modal h2 { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--yellow); margin-bottom: 8px; }
+  .modal p { color: rgba(255,255,255,0.7); margin-bottom: 20px; }
+  .modal-score { font-family: 'Fredoka One', cursive; font-size: 3.5rem; color: var(--gold); }
+  .btn-primary { background: linear-gradient(135deg, var(--orange), #FF4500); border: none; border-radius: 12px; padding: 14px 32px; font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(255,107,53,0.4); margin: 6px; }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-secondary { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px 28px; font-family: 'Fredoka One', cursive; font-size: 1rem; color: white; cursor: pointer; transition: all 0.2s; margin: 6px; }
+  .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+  .upgrade-btn { width: 100%; background: rgba(155,89,182,0.2); border: 2px solid var(--purple); border-radius: 12px; padding: 10px 14px; color: white; cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.8rem; text-align: left; display: flex; align-items: center; gap: 10px; transition: all 0.2s; margin-bottom: 8px; }
+  .upgrade-btn:hover { background: rgba(155,89,182,0.4); transform: translateX(3px); }
+  .upgrade-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .upgrade-icon { font-size: 1.5rem; }
+  .upgrade-text { flex: 1; }
+  .upgrade-cost { color: var(--gold); font-size: 0.75rem; }
+  .day-badge { background: rgba(255,217,61,0.15); border: 2px solid var(--yellow); border-radius: 12px; padding: 8px 16px; font-family: 'Fredoka One', cursive; font-size: 0.95rem; color: var(--yellow); text-align: center; margin: 8px 14px; }
+
+  .intro-screen { position: fixed; inset: 0; z-index: 2000; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.5s; }
+  .intro-screen.hidden { opacity: 0; pointer-events: none; }
+  .intro-logo { font-family: 'Fredoka One', cursive; font-size: 3.5rem; color: var(--yellow); text-align: center; line-height: 1.1; }
+  .intro-sub { color: rgba(255,255,255,0.6); margin: 10px 0 30px; font-size: 1rem; }
+  .intro-franklin { font-size: 5rem; margin-bottom: 16px; animation: float 2s ease-in-out infinite alternate; }
+
+  @keyframes float { from{transform:translateY(0)} to{transform:translateY(-15px)} }
+  @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+  @keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes toastIn { from{transform:translateX(100px);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes toastOut { from{transform:translateX(0);opacity:1} to{transform:translateX(100px);opacity:0} }
+  @keyframes coinPop { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-60px) scale(0.5);opacity:0} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .shake { animation: shake 0.3s ease; }
+  .coin-pop { position: fixed; font-family: 'Fredoka One', cursive; font-size: 1.4rem; color: var(--gold); pointer-events: none; z-index: 9999; animation: coinPop 0.8s ease forwards; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="intro-screen" id="intro">
+  <div class="intro-franklin"><img src="../../images/frankie.png" style="width:80px;height:80px;border-radius:50%;border:4px solid var(--yellow);" onerror="this.outerHTML='🧑‍🍳'"></div>
+  <div class="intro-logo">Franklin's<br>Clicker Kitchen</div>
+  <div class="intro-sub">A cooking chaos simulator</div>
+  <button class="btn-primary" onclick="startGame()" style="font-size:1.3rem; padding:16px 48px;">🍳 Start Cooking!</button>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<div class="overlay" id="serve-overlay">
+  <div class="modal">
+    <div style="font-size:3rem" id="serve-modal-emoji">⭐</div>
+    <h2 id="serve-modal-title">Order Served!</h2>
+    <p id="serve-modal-msg">Great cooking!</p>
+    <div class="modal-score" id="serve-modal-score">+$5.00</div>
+    <br><br>
+    <button class="btn-primary" onclick="closeServeModal()">Keep Cooking!</button>
+  </div>
+</div>
+
+<div class="overlay" id="dayend-overlay">
+  <div class="modal">
+    <div style="font-size:3rem">🌙</div>
+    <h2>Day Done!</h2>
+    <p id="dayend-msg">Kitchen is closed for the night.</p>
+    <div class="modal-score" id="dayend-score"></div>
+    <br>
+    <div id="dayend-upgrades" style="text-align:left; margin-bottom:16px;"></div>
+    <button class="btn-primary" onclick="nextDay()">Next Day ☀️</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="header-logo">
+      <div class="franklin-face"><img src="../../images/frankie.png" onerror="this.parentElement.innerHTML='🧑‍🍳'"></div>
+      <h1>Franklin's Kitchen</h1>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">📅 Day <span id="day-num">1</span></div>
+      <div class="stat-pill">💰 $<span id="money-display">0.00</span></div>
+      <div class="stat-pill">⭐ Lvl <span id="level-display">1</span></div>
+      <div class="stat-pill">😊 <span id="served-display">0</span> served</div>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <!-- LEFT -->
+    <div class="customers-panel">
+      <div class="panel-title">👥 Waiting Customers</div>
+      <div class="day-badge" id="day-badge">☀️ Day 1 — 0:00 remaining</div>
+      <div class="customers-list" id="customers-list"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="kitchen-panel">
+      <div class="kitchen-tabs">
+        <div class="ktab active" onclick="switchTab('order')" id="tab-order">📋 Order</div>
+        <div class="ktab" onclick="switchTab('cook')" id="tab-cook">🍳 Cook</div>
+        <div class="ktab" onclick="switchTab('minigame')" id="tab-minigame">🎮 Minigames</div>
+      </div>
+      <div class="kitchen-view">
+
+        <!-- ORDER TAB -->
+        <div class="order-station show" id="station-order">
+          <div id="no-order-msg" style="text-align:center; padding:60px 20px; color:rgba(255,255,255,0.3);">
+            <div style="font-size:4rem; margin-bottom:16px;">👈</div>
+            <div style="font-family:'Fredoka One',cursive; font-size:1.2rem;">Select a customer to take their order!</div>
+          </div>
+          <div id="active-order-view" style="display:none;">
+            <div class="current-order-card">
+              <div class="order-header">
+                <div class="order-avatar"><img id="order-cust-img" src="" onerror="this.style.display='none'"></div>
+                <div class="order-details">
+                  <h2 id="order-cust-name">Customer</h2>
+                  <p id="order-cust-vibe">They seem hungry...</p>
+                  <p style="font-size:0.75rem; color:var(--gold);" id="order-tip-preview"></p>
+                </div>
+              </div>
+              <div class="order-items" id="order-items-grid"></div>
+            </div>
+            <button class="start-cook-btn" onclick="switchTab('cook')" id="goto-cook-btn">🍳 Go Cook It!</button>
+          </div>
+        </div>
+
+        <!-- COOK TAB -->
+        <div class="order-station" id="station-cook">
+          <div id="cook-no-order" class="cook-intro">
+            <h3>🍳 Kitchen</h3>
+            <p>Select a customer first, then come here to cook their order!</p>
+          </div>
+          <div id="cook-active" style="display:none;">
+            <div class="cook-intro" style="margin-bottom:16px; padding:14px 20px; display:flex; align-items:center; gap:12px; text-align:left;">
+              <img id="cook-cust-avatar" src="" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--orange);" onerror="this.style.display='none'">
+              <div>
+                <div style="font-family:'Fredoka One',cursive; font-size:1rem; color:var(--yellow);" id="cook-cust-label">Cooking for...</div>
+                <div style="font-size:0.78rem; color:rgba(255,255,255,0.55);" id="cook-progress-label">0 / 0 items cooked</div>
+              </div>
+              <button class="serve-btn" id="serve-btn" onclick="serveOrder()" disabled style="margin-top:0; flex-shrink:0; width:auto; padding:10px 20px; font-size:0.9rem;">🚀 Serve!</button>
+            </div>
+            <div class="cook-queue" id="cook-queue"></div>
+          </div>
+        </div>
+
+        <!-- MINIGAME TAB -->
+        <div class="minigame-station" id="station-minigame">
+          <div class="minigame-grid" id="mg-selector">
+            <div class="minigame-card" onclick="startMG('whack')">
+              <div class="mg-icon">🔨</div><h4>Whack-a-Bug!</h4>
+              <p>Smash bugs before they ruin food! Earn bonus tips.</p>
+            </div>
+            <div class="minigame-card" onclick="startMG('fry')">
+              <div class="mg-icon">🍟</div><h4>Perfect Fry!</h4>
+              <p>Time the fryer perfectly for golden food & bonus stars.</p>
+            </div>
+            <div class="minigame-card" onclick="startMG('shake')">
+              <div class="mg-icon">🧃</div><h4>Shake Shake!</h4>
+              <p>Click rapidly to mix a perfect drink order!</p>
+            </div>
+            <div class="minigame-card" onclick="startMG('sort')">
+              <div class="mg-icon">🗂️</div><h4>Order Sorter!</h4>
+              <p>Match orders to customers as fast as you can!</p>
+            </div>
+          </div>
+          <div class="active-minigame" id="mg-whack">
+            <div class="mg-header">
+              <h3>🔨 Whack-a-Bug!</h3>
+              <div>
+                <span id="whack-score-display" style="color:var(--gold);font-weight:800;margin-right:10px;">0</span>
+                <span id="whack-timer" style="color:rgba(255,255,255,0.5);margin-right:10px;">15s</span>
+                <button class="close-mg" onclick="stopMG('whack')">✕</button>
+              </div>
+            </div>
+            <div id="whack-grid">
+              <div class="whack-hole" onclick="whackHole(0)" id="wh0">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(1)" id="wh1">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(2)" id="wh2">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(3)" id="wh3">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(4)" id="wh4">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(5)" id="wh5">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(6)" id="wh6">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(7)" id="wh7">🕳️</div>
+              <div class="whack-hole" onclick="whackHole(8)" id="wh8">🕳️</div>
+            </div>
+            <p style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.8rem;">Whack the 🪲 bugs! Earn $0.25 each!</p>
+          </div>
+          <div class="active-minigame" id="mg-fry">
+            <div class="mg-header"><h3>🍟 Perfect Fry!</h3><button class="close-mg" onclick="stopMG('fry')">✕</button></div>
+            <div class="fry-area">
+              <div style="margin-bottom:12px;font-size:0.85rem;color:rgba(255,255,255,0.6);">Click basket to start frying. Stop it in the GOLDEN zone!</div>
+              <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
+                <div style="background:rgba(255,0,0,0.3);border-radius:6px;padding:4px 10px;font-size:0.7rem;">Raw</div>
+                <div style="background:rgba(255,165,0,0.5);border-radius:6px;padding:4px 10px;font-size:0.7rem;">⭐ Golden</div>
+                <div style="background:rgba(100,50,0,0.5);border-radius:6px;padding:4px 10px;font-size:0.7rem;">Burnt</div>
+              </div>
+              <div class="fry-basket" id="fry-basket" onclick="fryClick()">🍟</div>
+              <div class="fry-progress"><div class="fry-fill" id="fry-fill" style="background:var(--red);"></div></div>
+              <div style="font-size:0.8rem;margin-top:8px;color:rgba(255,255,255,0.7);" id="fry-label">Click basket to start!</div>
+              <div id="fry-result" style="margin-top:12px;font-family:'Fredoka One',cursive;font-size:1.2rem;"></div>
+            </div>
+          </div>
+          <div class="active-minigame" id="mg-shake">
+            <div class="mg-header"><h3>🧃 Shake it Up!</h3><button class="close-mg" onclick="stopMG('shake')">✕</button></div>
+            <div style="text-align:center;padding:20px;">
+              <div style="font-size:5rem;margin-bottom:12px;transition:transform 0.1s;" id="shake-cup">🧃</div>
+              <div style="font-size:0.85rem;color:rgba(255,255,255,0.6);margin-bottom:12px;">Click as fast as you can! Target: <span id="shake-target">30</span> clicks</div>
+              <div class="fry-progress" style="margin-bottom:8px;"><div class="fry-fill" id="shake-fill" style="background:linear-gradient(90deg,var(--blue),var(--purple));"></div></div>
+              <div id="shake-clicks" style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--teal);">0 / 30</div>
+              <div id="shake-result" style="margin-top:12px;font-family:'Fredoka One',cursive;font-size:1.3rem;"></div>
+            </div>
+          </div>
+          <div class="active-minigame" id="mg-sort">
+            <div class="mg-header">
+              <h3>🗂️ Order Sorter!</h3>
+              <div><span id="sort-score" style="color:var(--gold);font-weight:800;margin-right:8px;">0/5</span><button class="close-mg" onclick="stopMG('sort')">✕</button></div>
+            </div>
+            <div id="sort-game" style="padding:10px 0;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="score-panel">
+      <div class="big-score">
+        <div class="score-num">$<span id="big-money">0</span></div>
+        <div class="score-label">Today's Earnings</div>
+        <div class="level-bar">
+          <div class="level-label"><span>Lvl <span id="lvl-left">1</span></span><span id="lvl-xp-label">0/100 XP</span></div>
+          <div class="level-track"><div class="level-fill" id="lvl-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="score-section">
+        <div class="panel-title" style="padding:0 0 10px;">🛒 Shop</div>
+        <div id="shop-area"></div>
+      </div>
+      <div class="panel-title" style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.06);">📜 Recent Served</div>
+      <div class="recent-list" id="recent-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const IMAGES = {
+  frankie: '../../images/frankie.png',
+  beautifulXavier: '../../images/BeautifulXavier.png',
+  boOnDaBus: '../../images/BoOnDaBus.png',
+  bort: '../../images/Bort.png',
+  braden: '../../images/braden_car.png',
+  busDriverWoody: '../../images/BusDriverWoody.png',
+  deacOnDaBus: '../../images/DeacOnDaBus.png',
+  excitedJeff: '../../images/ExcitedJeff.png',
+  franklinClicker: '../../images/FranklinClicker.png',
+  gassyBirdy: '../../images/GassyBirdy.png',
+  gassyman: '../../images/gassyman.png',
+  happyVoss: '../../images/happyVoss.png',
+  jesseOnDaBus: '../../images/JesseOnDaBus.png',
+  madsOnDaBus: '../../images/MadsOnDaBus.png',
+  madVoss: '../../images/madVoss.png',
+  matthewOnDaBus: '../../images/MatthewOnDaBus.png',
+  megaTOnDaBus: '../../images/MegaTOnDaBus.png',
+  patientX: '../../images/patientX.png',
+  samBOnDaBus: '../../images/SamBOnDaBus.png',
+  samLOnDaBus: '../../images/SamLOnDaBus.png',
+  propellerHat: '../../images/PropellerHat.png',
+  eepy: '../../images/eepy.png',
+  whitemonster: '../../images/whitemonster.png',
+  bradenkiss: '../../images/bradenkiss.png',
+  xavierkiss: '../../images/xavierkiss.png',
+  hallucinations: '../../images/Hallucinations.png',
+  sleepyObstacle: '../../images/sleepy_obstacle.png',
+  woodenvs: '../../images/woodenvs.png',
+  energyDrink: '../../images/energy_drink.png',
+  casino: '../../images/casino.png',
+  powerupBig: '../../images/powerup_big.png',
+  powerupFast: '../../images/powerup_fast.png',
+  powerupSlow: '../../images/powerup_slow.png',
+  bogostick: '../../images/bogostick.png',
+  eligostick: '../../images/eligostick.png',
+  pipe: '../../images/pipe.png',
+  woodenIcon: '../../images/WoodenIcon.png',
+  woodenJump: '../../images/WoodenJumpWo.png',
+  bortFace: '../../images/Bort.png',
+  fort: '../../images/fort.jpg',
+  game1: '../../images/game1.png',
+  game2: '../../images/game2.png',
+  game3: '../../images/game3.png',
+  game11: '../../images/game11.png',
+  game13: '../../images/game13.png',
+  broken: '../../images/broken.jpg',
+  durrburg: '../../images/durrburg.jpg',
+  movingCar: '../../images/moving_car.png',
+  propHat: '../../images/PropellerHat.png',
+};
+
+// MECHANIC DEFINITIONS
+const MECHANICS = {
+  sequence: (seq) => ({ type:'sequence', sequence: seq }),
+  hold: (ms) => ({ type:'hold', holdTime: ms }),
+  trace: () => ({ type:'trace' }),
+  rapidclick: (target) => ({ type:'rapidclick', target }),
+};
+
+const MENU_ITEMS = [
+  { id:'energydrink', name:'Energy Drink', img: IMAGES.energyDrink, basePrice:3.50, mechanic: MECHANICS.sequence(['↑','↓','↑','↓']), hint:'Shake it! Arrow keys in order.', mechanicLabel:'🎹 Key Sequence' },
+  { id:'casino', name:'Casino Roll', img: IMAGES.casino, basePrice:5.00, mechanic: MECHANICS.hold(2500), hint:'Hold to let it roll...', mechanicLabel:'⏱️ Hold to Cook' },
+  { id:'bogostick', name:'Bogo Stick', img: IMAGES.bogostick, basePrice:2.50, mechanic: MECHANICS.sequence(['←','→','←','→']), hint:'Bounce it! Arrow keys.', mechanicLabel:'🎹 Key Sequence' },
+  { id:'eligostick', name:'Eligo Stick', img: IMAGES.eligostick, basePrice:3.00, mechanic: MECHANICS.trace(), hint:'Stir with your mouse — draw circles!', mechanicLabel:'🖱️ Trace' },
+  { id:'powerupbig', name:'Big Power Up', img: IMAGES.powerupBig, basePrice:4.00, mechanic: MECHANICS.sequence(['↑','↑','↓','←','→']), hint:'Power combo! Arrow keys.', mechanicLabel:'🎹 Key Sequence' },
+  { id:'powerupfast', name:'Fast Power Up', img: IMAGES.powerupFast, basePrice:3.50, mechanic: MECHANICS.rapidclick(20), hint:'Rapid-click to charge it!', mechanicLabel:'🖱️ Rapid Click' },
+  { id:'powerupslow', name:'Slow-Mo Shake', img: IMAGES.powerupSlow, basePrice:3.00, mechanic: MECHANICS.hold(3500), hint:'Hold and breathe... slow and steady.', mechanicLabel:'⏱️ Hold to Cook' },
+  { id:'wood', name:'Wooden Special', img: IMAGES.woodenIcon, basePrice:4.50, mechanic: MECHANICS.sequence(['↑','←','↓','→','↑']), hint:'Carve it out! Arrow keys.', mechanicLabel:'🎹 Key Sequence' },
+  { id:'pipe', name:'Pipe Surprise', img: IMAGES.pipe, basePrice:2.00, mechanic: MECHANICS.trace(), hint:'Stir the mystery contents...', mechanicLabel:'🖱️ Trace' },
+  { id:'whitemon', name:'White Monster', img: IMAGES.whitemonster, basePrice:5.50, mechanic: MECHANICS.hold(2000), hint:'Hold the beast down!', mechanicLabel:'⏱️ Hold to Cook' },
+  { id:'fort', name:'Fort Feast', img: IMAGES.fort, basePrice:6.00, mechanic: MECHANICS.sequence(['↑','↑','←','↓','→','↓']), hint:'Build it layer by layer!', mechanicLabel:'🎹 Key Sequence' },
+  { id:'game1', name:'Game Snack 1', img: IMAGES.game1, basePrice:2.00, mechanic: MECHANICS.rapidclick(15), hint:'Click click click!', mechanicLabel:'🖱️ Rapid Click' },
+  { id:'game2', name:'Game Snack 2', img: IMAGES.game2, basePrice:2.50, mechanic: MECHANICS.sequence(['↓','↑','←','→']), hint:'Combo move — arrow keys!', mechanicLabel:'🎹 Key Sequence' },
+  { id:'game3', name:'Game Snack 3', img: IMAGES.game3, basePrice:3.00, mechanic: MECHANICS.hold(1800), hint:'Keep the pressure on!', mechanicLabel:'⏱️ Hold to Cook' },
+  { id:'woodjump', name:'Jump Special', img: IMAGES.woodenJump, basePrice:5.00, mechanic: MECHANICS.sequence(['↑','↑','↑','↓','↓','↑']), hint:'Nail the jump combo!', mechanicLabel:'🎹 Key Sequence' },
+  { id:'broken', name:'Broken Dish', img: IMAGES.broken, basePrice:1.50, mechanic: MECHANICS.rapidclick(10), hint:'Smash it together fast!', mechanicLabel:'🖱️ Rapid Click' },
+  { id:'durrburg', name:'Durrburg Deluxe', img: IMAGES.durrburg, basePrice:7.00, mechanic: MECHANICS.sequence(['←','↑','→','↓','←','↑','→']), hint:'Premium technique required.', mechanicLabel:'🎹 Key Sequence' },
+  { id:'hallucination', name:'Hallucination Bowl', img: IMAGES.hallucinations, basePrice:8.00, mechanic: MECHANICS.trace(), hint:'Stir in a daze...', mechanicLabel:'🖱️ Trace' },
+];
+
+const CUSTOMERS = [
+  { id:'xavier', name:'Beautiful Xavier', img: IMAGES.beautifulXavier, vibe:'Looking fabulous as always!', tipping:'great' },
+  { id:'bort', name:'Bad Guy', img: IMAGES.badguy, vibe:'Just wants something good.', tipping:'ok' },
+  { id:'woody', name:'Mr. Wooden', img: IMAGES.busDriverWoody, vibe:'On break from the bus!', tipping:'great' },
+  { id:'deac', name:'Deacon', img: IMAGES.deacOnDaBus, vibe:'Still riding, still hungry.', tipping:'ok' },
+  { id:'jeff', name:'Excited Wooden', img: IMAGES.excitedJeff, vibe:'SO EXCITED TO EAT!!', tipping:'great' },
+  { id:'gassybird', name:'Gassy Man', img: IMAGES.gassyman, vibe:'...do NOT ask.', tipping:'bad' },
+  { id:'happyvoss', name:'Happy Voss', img: IMAGES.happyVoss, vibe:"Everything's great today!", tipping:'great' },
+  { id:'jesse', name:'Jesse', img: IMAGES.jesseOnDaBus, vibe:'Bus life keeps going.', tipping:'ok' },
+  { id:'mads', name:'Mads', img: IMAGES.madsOnDaBus, vibe:'Tired but hungry.', tipping:'ok' },
+  { id:'madvoss', name:'Mad Voss', img: IMAGES.madVoss, vibe:"DON'T mess up the order.", tipping:'bad' },
+  { id:'matthew', name:'Matthew', img: IMAGES.matthewOnDaBus, vibe:'Regular Tuesday vibes.', tipping:'ok' },
+  { id:'mega', name:'Megatron', img: IMAGES.megaTOnDaBus, vibe:'Mega appetite incoming.', tipping:'great' },
+  { id:'patientx', name:'Patient X', img: IMAGES.patientX, vibe:'Mysterious... and hungry.', tipping:'ok' },
+  { id:'samb', name:'Sam B', img: IMAGES.samBOnDaBus, vibe:'Just wants lunch.', tipping:'ok' },
+  { id:'saml', name:'Sam L', img: IMAGES.samLOnDaBus, vibe:'Ready to eat!', tipping:'ok' },
+  { id:'boondabus', name:'Beau', img: IMAGES.boOnDaBus, vibe:'Bus commute made me starving.', tipping:'ok' },
+];
+
+const ORDER_VIBES = ['so hungry right now...','I heard this place is amazing!','My friend recommended you!','Make it quick please!','No rush, take your time.','First time here, excited!','Make it extra special!',"I've been waiting for this all day.",'This better be worth it.','Franklin is the GOAT.'];
+
+const UPGRADES = [
+  { id:'faster', name:'Turbo Kitchen', desc:'Customers wait 25% longer', cost:15, icon:'⚡', bought:false },
+  { id:'tips', name:'Tip Booster', desc:'All tips +$0.50', cost:25, icon:'💰', bought:false },
+  { id:'patience', name:'Patience Potion', desc:'Start each day with +$5', cost:40, icon:'🧪', bought:false },
+  { id:'mega', name:'Mega Menu', desc:'Unlock premium items', cost:50, icon:'📜', bought:false },
+];
+
+// =========== STATE ===========
+let state = {
+  money:0, dayMoney:0, xp:0, level:1, xpToNext:100,
+  day:1, dayTime:120, dayTimer:null, served:0,
+  customers:[], activeCustomer:null,
+  cookingItem:null, cookingCardId:null, // active cooking minigame
+  cookedItems: new Set(), // item ids cooked this order
+  upgrades: UPGRADES.map(u=>({...u})),
+  recentServed:[],
+  // whack
+  whackScore:0, whackTimer:null, whackMoleTimer:null, whackTimeLeft:15, whackMoles:new Array(9).fill(false),
+  // fry
+  fryActive:false, fryPct:0, fryInterval:null,
+  // shake (minigame tab)
+  shakeClicks:0, shakeTarget:30, shakeActive:false,
+  // sort
+  sortScore:0, sortMax:5,
+  // cook minigame
+  cookSeqProgress:0,
+  cookHoldProgress:0, cookHoldActive:false, cookHoldRaf:null, cookHoldStart:null,
+  cookTracePoints:[], cookTraceActive:false,
+  cookRapidClicks:0, cookRapidActive:false,
+  cookingActive:false,
+};
+
+// =========== START ===========
+function startGame() {
+  document.getElementById('intro').classList.add('hidden');
+  setTimeout(() => document.getElementById('intro').remove(), 600);
+  buildShop();
+  spawnCustomers();
+  startDayTimer();
+}
+
+function buildShop() {
+  const area = document.getElementById('shop-area');
+  area.innerHTML = '';
+  state.upgrades.forEach(upg => {
+    const btn = document.createElement('button');
+    btn.className = 'upgrade-btn';
+    btn.id = 'upg-' + upg.id;
+    btn.disabled = upg.bought || state.money < upg.cost;
+    btn.onclick = () => buyUpgrade(upg.id);
+    btn.innerHTML = `<span class="upgrade-icon">${upg.icon}</span><span class="upgrade-text"><b>${upg.name}</b><br><span style="opacity:0.6;font-size:0.7rem">${upg.desc}</span></span><span class="upgrade-cost">${upg.bought ? '✅' : '$'+upg.cost}</span>`;
+    area.appendChild(btn);
+  });
+}
+
+// =========== CUSTOMERS ===========
+function spawnCustomers() {
+  const count = 2 + state.day;
+  state.customers = [];
+  const used = new Set();
+  for (let i = 0; i < Math.min(count, 8); i++) {
+    let cust;
+    do { cust = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)]; } while (used.has(cust.id));
+    used.add(cust.id);
+    const order = generateOrder();
+    state.customers.push({
+      ...cust,
+      instanceId: cust.id + '_' + Date.now() + '_' + i,
+      order, patience:100,
+      patienceRate: cust.tipping==='bad' ? 0.6 : cust.tipping==='great' ? 0.3 : 0.45,
+      served:false,
+    });
+  }
+  renderCustomers();
+}
+
+function generateOrder() {
+  const available = state.upgrades.find(u => u.id==='mega' && u.bought) ? MENU_ITEMS : MENU_ITEMS.slice(0, 12);
+  const count = 1 + Math.floor(Math.random() * 2);
+  const items = [], used = new Set();
+  for (let i = 0; i < count; i++) {
+    let item;
+    do { item = available[Math.floor(Math.random() * available.length)]; } while (used.has(item.id));
+    used.add(item.id);
+    items.push(item);
+  }
+  return items;
+}
+
+function renderCustomers() {
+  const list = document.getElementById('customers-list');
+  list.innerHTML = '';
+  state.customers.forEach(cust => {
+    if (cust.served) return;
+    const card = document.createElement('div');
+    card.className = 'customer-card' + (state.activeCustomer?.instanceId === cust.instanceId ? ' active' : '');
+    card.id = 'cust-' + cust.instanceId;
+    card.onclick = () => selectCustomer(cust.instanceId);
+    const orderNames = cust.order.map(i => i.name).join(', ');
+    const warn = cust.patience < 40 ? ' warn' : '';
+    card.innerHTML = `
+      <div class="customer-top">
+        <div class="customer-avatar"><img src="${cust.img}" onerror="this.parentElement.innerHTML='😀'"></div>
+        <div class="customer-info">
+          <div class="customer-name">${cust.name}</div>
+          <div class="customer-order">Wants: ${orderNames}</div>
+        </div>
+      </div>
+      <div class="patience-bar"><div class="patience-fill${warn}" style="width:${cust.patience}%"></div></div>
+      <div class="customer-tip">${getTipLabel(cust)}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function getTipLabel(c) {
+  if (c.tipping==='great') return '💰 Big Tip';
+  if (c.tipping==='bad') return '😒 Low Tip';
+  return '😊 Fair';
+}
+
+function selectCustomer(instanceId) {
+  const cust = state.customers.find(c => c.instanceId === instanceId);
+  if (!cust || cust.served) return;
+  state.activeCustomer = cust;
+  state.cookedItems = new Set();
+  stopCookMG();
+  renderCustomers();
+  renderOrderView();
+  renderCookQueue();
+  updateServeBtn();
+  switchTab('order');
+}
+
+function renderOrderView() {
+  const cust = state.activeCustomer;
+  if (!cust) {
+    document.getElementById('no-order-msg').style.display = 'block';
+    document.getElementById('active-order-view').style.display = 'none';
+    return;
+  }
+  document.getElementById('no-order-msg').style.display = 'none';
+  document.getElementById('active-order-view').style.display = 'block';
+  document.getElementById('order-cust-img').src = cust.img;
+  document.getElementById('order-cust-name').textContent = cust.name;
+  document.getElementById('order-cust-vibe').textContent = '"' + ORDER_VIBES[Math.floor(Math.random()*ORDER_VIBES.length)] + '"';
+  document.getElementById('order-tip-preview').textContent = cust.tipping==='great' ? '💰 Known for big tips!' : cust.tipping==='bad' ? '😬 Not a great tipper...' : '';
+  const grid = document.getElementById('order-items-grid');
+  grid.innerHTML = '';
+  cust.order.forEach(item => {
+    const el = document.createElement('div');
+    const cooked = state.cookedItems.has(item.id);
+    el.className = 'order-item' + (cooked ? ' cooked' : '');
+    el.id = 'order-item-' + item.id;
+    el.innerHTML = `
+      <img src="${item.img}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+      <div>
+        <div class="order-item-label">${item.name}</div>
+        <div class="order-item-sub">$${item.basePrice.toFixed(2)}</div>
+        <div class="order-item-status">${cooked ? '✅ Ready!' : ''}</div>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+// =========== COOK QUEUE ===========
+function renderCookQueue() {
+  const cust = state.activeCustomer;
+  document.getElementById('cook-no-order').style.display = cust ? 'none' : 'block';
+  document.getElementById('cook-active').style.display = cust ? 'block' : 'none';
+  if (!cust) return;
+
+  document.getElementById('cook-cust-avatar').src = cust.img;
+  document.getElementById('cook-cust-label').textContent = 'Cooking for ' + cust.name;
+  const cooked = state.cookedItems.size;
+  document.getElementById('cook-progress-label').textContent = `${cooked} / ${cust.order.length} items cooked`;
+
+  const queue = document.getElementById('cook-queue');
+  queue.innerHTML = '';
+  cust.order.forEach((item, idx) => {
+    const isDone = state.cookedItems.has(item.id);
+    const isCooking = state.cookingItem?.id === item.id && state.cookingActive;
+    const card = document.createElement('div');
+    card.className = 'cook-item-card' + (isCooking ? ' cooking' : isDone ? ' done' : '');
+    card.id = 'cookcard-' + item.id;
+
+    let badgeHtml = '';
+    if (isDone) badgeHtml = '<span class="cook-item-badge badge-done">✅ Done!</span>';
+    else if (isCooking) badgeHtml = '<span class="cook-item-badge badge-cooking">🍳 Cooking...</span>';
+    else badgeHtml = '<span class="cook-item-badge badge-ready">👆 Cook it</span>';
+
+    card.innerHTML = `
+      <div class="cook-item-top">
+        <img src="${item.img}" onerror="this.style.display='none'">
+        <div>
+          <div class="cook-item-name">${item.name}</div>
+          <div class="cook-item-mechanic">${item.mechanicLabel} — ${item.hint}</div>
+        </div>
+        ${badgeHtml}
+      </div>
+      <div id="mgarea-${item.id}"></div>`;
+
+    // If not done and not already cooking something else, render the minigame
+    if (!isDone) {
+      const mgArea = card.querySelector('#mgarea-' + item.id);
+      if (isCooking) {
+        renderActiveMG(item, mgArea);
+      } else if (!state.cookingActive) {
+        const btn = document.createElement('button');
+        btn.className = 'start-cook-btn';
+        btn.style.marginTop = '10px';
+        btn.textContent = '🍳 Start Cooking This';
+        btn.onclick = () => startCookMG(item);
+        mgArea.appendChild(btn);
+      }
+    }
+    queue.appendChild(card);
+  });
+  updateServeBtn();
+}
+
+// =========== COOK MINIGAME ENGINE ===========
+function startCookMG(item) {
+  if (state.cookingActive) return;
+  state.cookingActive = true;
+  state.cookingItem = item;
+  state.cookSeqProgress = 0;
+  state.cookHoldProgress = 0;
+  state.cookHoldActive = false;
+  state.cookTracePoints = [];
+  state.cookTraceActive = false;
+  state.cookRapidClicks = 0;
+  renderCookQueue();
+}
+
+function stopCookMG() {
+  state.cookingActive = false;
+  state.cookingItem = null;
+  document.removeEventListener('keydown', cookSeqHandler);
+  if (state.cookHoldRaf) cancelAnimationFrame(state.cookHoldRaf);
+  state.cookHoldActive = false;
+}
+
+function renderActiveMG(item, container) {
+  const m = item.mechanic;
+  container.innerHTML = '';
+
+  const progressWrap = document.createElement('div');
+  progressWrap.innerHTML = `<div class="cook-progress-wrap"><div class="cook-progress-fill" id="cpfill-${item.id}" style="width:0%"></div></div><div class="cook-status" id="cstatus-${item.id}"></div>`;
+  container.appendChild(progressWrap);
+
+  if (m.type === 'sequence') {
+    const hint = document.createElement('div');
+    hint.className = 'cook-hint';
+    hint.textContent = item.hint;
+    container.insertBefore(hint, progressWrap);
+    const seqDiv = document.createElement('div');
+    seqDiv.className = 'seq-display';
+    seqDiv.id = 'seqdisplay-' + item.id;
+    container.insertBefore(seqDiv, progressWrap);
+    renderSeqKeys(item);
+    document.removeEventListener('keydown', cookSeqHandler);
+    document.addEventListener('keydown', cookSeqHandler);
+
+  } else if (m.type === 'hold') {
+    const hint = document.createElement('div');
+    hint.className = 'cook-hint';
+    hint.textContent = item.hint;
+    container.insertBefore(hint, progressWrap);
+    const holdZone = document.createElement('div');
+    holdZone.className = 'hold-zone';
+    const circle = document.createElement('div');
+    circle.className = 'hold-circle';
+    circle.id = 'holdcircle-' + item.id;
+    circle.innerHTML = `<img src="${item.img}" onerror="this.style.display='none'">`;
+    circle.onmousedown = () => cookHoldStart(item);
+    circle.onmouseup = circle.onmouseleave = () => cookHoldEnd(item);
+    circle.ontouchstart = (e) => { e.preventDefault(); cookHoldStart(item); };
+    circle.ontouchend = () => cookHoldEnd(item);
+    holdZone.appendChild(circle);
+    container.insertBefore(holdZone, progressWrap);
+
+  } else if (m.type === 'trace') {
+    const hint = document.createElement('div');
+    hint.className = 'cook-hint';
+    hint.textContent = item.hint;
+    container.insertBefore(hint, progressWrap);
+    const canvas = document.createElement('canvas');
+    canvas.id = 'cook-trace-canvas';
+    canvas.width = 280; canvas.height = 110;
+    container.insertBefore(canvas, progressWrap);
+    initTraceCanvas(canvas, item);
+
+  } else if (m.type === 'rapidclick') {
+    const hint = document.createElement('div');
+    hint.className = 'cook-hint';
+    hint.textContent = item.hint;
+    container.insertBefore(hint, progressWrap);
+    state.cookRapidClicks = 0;
+    const btn = document.createElement('button');
+    btn.className = 'start-cook-btn';
+    btn.style.marginTop = '8px';
+    btn.innerHTML = `<img src="${item.img}" style="width:30px;height:30px;object-fit:contain;border-radius:6px;" onerror="this.style.display='none'"> Smash it! (0/${m.target})`;
+    btn.id = 'rapidbtn-' + item.id;
+    btn.onclick = () => cookRapidClick(item, btn);
+    container.insertBefore(btn, progressWrap);
+  }
+}
+
+// SEQUENCE
+function renderSeqKeys(item) {
+  const disp = document.getElementById('seqdisplay-' + item.id);
+  if (!disp) return;
+  disp.innerHTML = '';
+  item.mechanic.sequence.forEach((k, i) => {
+    const el = document.createElement('div');
+    el.className = 'seq-key' + (i < state.cookSeqProgress ? ' done' : i === state.cookSeqProgress ? ' active' : '');
+    el.textContent = k;
+    disp.appendChild(el);
+  });
+}
+
+function cookSeqHandler(e) {
+  if (!state.cookingActive || !state.cookingItem || state.cookingItem.mechanic.type !== 'sequence') return;
+  const map = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→' };
+  const key = map[e.key];
+  if (!key) return;
+  e.preventDefault();
+  const item = state.cookingItem;
+  const seq = item.mechanic.sequence;
+  const keys = document.querySelectorAll('#seqdisplay-' + item.id + ' .seq-key');
+  if (key === seq[state.cookSeqProgress]) {
+    state.cookSeqProgress++;
+    if (keys[state.cookSeqProgress - 1]) keys[state.cookSeqProgress - 1].className = 'seq-key done';
+    const pct = (state.cookSeqProgress / seq.length) * 100;
+    const fill = document.getElementById('cpfill-' + item.id);
+    if (fill) fill.style.width = pct + '%';
+    if (state.cookSeqProgress >= seq.length) {
+      document.removeEventListener('keydown', cookSeqHandler);
+      finishCookItem(item, true);
+    }
+  } else {
+    if (keys[state.cookSeqProgress]) {
+      keys[state.cookSeqProgress].className = 'seq-key wrong';
+      setTimeout(() => { state.cookSeqProgress = 0; renderSeqKeys(item); const fill = document.getElementById('cpfill-'+item.id); if(fill) fill.style.width='0%'; }, 350);
+    }
+    const status = document.getElementById('cstatus-' + item.id);
+    if (status) { status.textContent = '✗ Wrong key! Start over.'; status.style.color = 'var(--red)'; setTimeout(() => { status.textContent = ''; }, 900); }
+  }
+}
+
+// HOLD
+function cookHoldStart(item) {
+  if (!state.cookingActive) return;
+  state.cookHoldActive = true;
+  state.cookHoldStart = Date.now();
+  const circle = document.getElementById('holdcircle-' + item.id);
+  if (circle) circle.classList.add('held');
+  function tick() {
+    if (!state.cookHoldActive) return;
+    const elapsed = Date.now() - state.cookHoldStart + state.cookHoldProgress;
+    const pct = Math.min(100, (elapsed / item.mechanic.holdTime) * 100);
+    const fill = document.getElementById('cpfill-' + item.id);
+    if (fill) fill.style.width = pct + '%';
+    const status = document.getElementById('cstatus-' + item.id);
+    if (status) status.textContent = Math.round(pct) + '%';
+    if (pct >= 100) { state.cookHoldActive = false; finishCookItem(item, true); return; }
+    state.cookHoldRaf = requestAnimationFrame(tick);
+  }
+  state.cookHoldRaf = requestAnimationFrame(tick);
+}
+
+function cookHoldEnd(item) {
+  if (!state.cookHoldActive) return;
+  state.cookHoldProgress += Date.now() - state.cookHoldStart;
+  state.cookHoldActive = false;
+  if (state.cookHoldRaf) cancelAnimationFrame(state.cookHoldRaf);
+  const circle = document.getElementById('holdcircle-' + item.id);
+  if (circle) circle.classList.remove('held');
+}
+
+// TRACE
+function initTraceCanvas(canvas, item) {
+  state.cookTracePoints = [];
+  state.cookTraceActive = false;
+  const ctx = canvas.getContext('2d');
+  drawTraceGuide(ctx, canvas);
+  canvas.onmousedown = () => { state.cookTraceActive = true; };
+  canvas.onmouseup = canvas.onmouseleave = () => { state.cookTraceActive = false; };
+  canvas.onmousemove = (e) => {
+    if (!state.cookTraceActive || !state.cookingActive) return;
+    const r = canvas.getBoundingClientRect();
+    state.cookTracePoints.push({ x: e.clientX - r.left, y: e.clientY - r.top });
+    drawTraceGuide(ctx, canvas);
+    const pct = checkTracePct(canvas);
+    const fill = document.getElementById('cpfill-' + item.id);
+    if (fill) fill.style.width = pct + '%';
+    if (pct >= 100 && state.cookingActive) finishCookItem(item, true);
+  };
+}
+
+function drawTraceGuide(ctx, canvas) {
+  const cx = canvas.width/2, cy = canvas.height/2, r = 38;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  if (state.cookTracePoints.length > 1) {
+    ctx.strokeStyle = 'var(--orange)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(state.cookTracePoints[0].x, state.cookTracePoints[0].y);
+    state.cookTracePoints.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+  }
+}
+
+function checkTracePct(canvas) {
+  const cx = canvas.width/2, cy = canvas.height/2, r = 38;
+  const buckets = new Set();
+  state.cookTracePoints.forEach(p => {
+    const dx = p.x-cx, dy = p.y-cy, dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist > r-20 && dist < r+20) buckets.add(Math.floor(((Math.atan2(dy,dx)+Math.PI)/(Math.PI*2))*24));
+  });
+  return Math.min(100, (buckets.size/24)*100);
+}
+
+// RAPID CLICK
+function cookRapidClick(item, btn) {
+  if (!state.cookingActive) return;
+  state.cookRapidClicks++;
+  const pct = Math.min(100, (state.cookRapidClicks / item.mechanic.target) * 100);
+  const fill = document.getElementById('cpfill-' + item.id);
+  if (fill) fill.style.width = pct + '%';
+  btn.innerHTML = `<img src="${item.img}" style="width:30px;height:30px;object-fit:contain;border-radius:6px;" onerror="this.style.display='none'"> Smash it! (${state.cookRapidClicks}/${item.mechanic.target})`;
+  btn.style.transform = `scale(${0.95 + Math.random()*0.1}) rotate(${(Math.random()-0.5)*5}deg)`;
+  setTimeout(() => { btn.style.transform = ''; }, 80);
+  if (state.cookRapidClicks >= item.mechanic.target) finishCookItem(item, true);
+}
+
+// FINISH
+function finishCookItem(item, success) {
+  document.removeEventListener('keydown', cookSeqHandler);
+  state.cookingActive = false;
+  if (success) {
+    state.cookedItems.add(item.id);
+    toast(`✅ ${item.name} is ready!`, 'success');
+    coinPop('✅ Done!');
+    addXP(10);
+  }
+  state.cookingItem = null;
+  renderCookQueue();
+  renderOrderView();
+}
+
+// =========== SERVE ===========
+function updateServeBtn() {
+  const btn = document.getElementById('serve-btn');
+  if (!btn) return;
+  const cust = state.activeCustomer;
+  if (!cust) { btn.disabled = true; return; }
+  const allCooked = cust.order.every(item => state.cookedItems.has(item.id));
+  btn.disabled = !allCooked;
+  if (allCooked) { btn.style.background = 'linear-gradient(135deg, var(--green), #1a8a4a)'; }
+}
+
+function serveOrder() {
+  const cust = state.activeCustomer;
+  if (!cust) return;
+  const allCooked = cust.order.every(item => state.cookedItems.has(item.id));
+  if (!allCooked) { toast('Not everything is cooked yet!', 'error'); return; }
+
+  let baseEarnings = cust.order.reduce((sum, i) => sum + i.basePrice, 0);
+  let tipBonus = cust.tipping==='great' ? 2.0 : cust.tipping==='ok' ? 1.0 : 0.25;
+  const hasUpgTips = state.upgrades.find(u => u.id==='tips' && u.bought);
+  if (hasUpgTips) tipBonus += 0.5;
+  const patienceBonus = cust.patience > 70 ? 0.5 : 0;
+  const total = baseEarnings + tipBonus + patienceBonus;
+  const rounded = Math.round(total * 100) / 100;
+
+  addXP(30);
+  cust.served = true;
+  state.activeCustomer = null;
+  state.cookedItems = new Set();
+  state.cookingActive = false;
+  state.cookingItem = null;
+  state.dayMoney += rounded;
+  state.money += rounded;
+  state.served++;
+  state.recentServed.unshift({ cust, rounded });
+  if (state.recentServed.length > 8) state.recentServed.pop();
+
+  document.getElementById('serve-modal-emoji').textContent = rounded >= 8 ? '⭐⭐⭐' : rounded >= 5 ? '⭐⭐' : '⭐';
+  document.getElementById('serve-modal-title').textContent = rounded >= 8 ? 'Perfection!' : 'Order Served!';
+  document.getElementById('serve-modal-msg').textContent = `${cust.name} loved it! Patience bonus: ${patienceBonus > 0 ? '+$0.50' : '$0.00'}`;
+  document.getElementById('serve-modal-score').textContent = `+$${rounded.toFixed(2)}`;
+  document.getElementById('serve-overlay').classList.add('show');
+
+  coinPop(`+$${rounded.toFixed(2)}`);
+  updateUI();
+  renderCustomers();
+  renderOrderView();
+  renderCookQueue();
+  renderRecent();
+  buildShop();
+}
+
+function closeServeModal() {
+  document.getElementById('serve-overlay').classList.remove('show');
+}
+
+function coinPop(text) {
+  const el = document.createElement('div');
+  el.className = 'coin-pop';
+  el.textContent = text;
+  el.style.left = (Math.random() * 200 + 300) + 'px';
+  el.style.top = (window.innerHeight / 2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+// =========== DAY TIMER ===========
+function startDayTimer() {
+  const hasUpg = state.upgrades.find(u => u.id==='faster' && u.bought);
+  const dayDuration = state.dayTime + (hasUpg ? 30 : 0);
+  let elapsed = 0;
+  state.dayTimer = setInterval(() => {
+    elapsed++;
+    const remaining = dayDuration - elapsed;
+    const mins = Math.floor(remaining/60);
+    const secs = remaining % 60;
+    document.getElementById('day-badge').textContent = `☀️ Day ${state.day} — ${mins}:${secs.toString().padStart(2,'0')} remaining`;
+    state.customers.forEach(cust => {
+      if (cust.served) return;
+      cust.patience = Math.max(0, cust.patience - cust.patienceRate);
+    });
+    renderCustomers();
+    if (remaining <= 0) { clearInterval(state.dayTimer); endDay(); }
+  }, 1000);
+}
+
+function endDay() {
+  const hasUpgPat = state.upgrades.find(u => u.id==='patience' && u.bought);
+  if (hasUpgPat) { state.money += 5; state.dayMoney += 5; }
+  document.getElementById('dayend-score').textContent = `$${state.dayMoney.toFixed(2)} earned today!`;
+  const avail = state.upgrades.filter(u => !u.bought && state.money >= u.cost);
+  const upgDiv = document.getElementById('dayend-upgrades');
+  upgDiv.innerHTML = avail.length > 0
+    ? '<div style="font-weight:700;margin-bottom:8px;color:var(--yellow);">⬆️ Available upgrades:</div>' + avail.map(u=>`<div style="font-size:0.8rem;margin-bottom:4px;">${u.icon} ${u.name} — $${u.cost}</div>`).join('')
+    : '';
+  document.getElementById('dayend-msg').textContent = `You served ${state.served} customers total!`;
+  document.getElementById('dayend-overlay').classList.add('show');
+  updateUI();
+}
+
+function nextDay() {
+  document.getElementById('dayend-overlay').classList.remove('show');
+  state.day++;
+  state.dayMoney = 0;
+  state.customers = [];
+  state.activeCustomer = null;
+  state.cookedItems = new Set();
+  stopCookMG();
+  spawnCustomers();
+  startDayTimer();
+  renderOrderView();
+  renderCookQueue();
+  renderRecent();
+  buildShop();
+  updateUI();
+  toast(`☀️ Day ${state.day} begins! New customers arrive!`, 'info');
+}
+
+// =========== XP ===========
+function addXP(amount) {
+  state.xp += amount;
+  while (state.xp >= state.xpToNext) {
+    state.xp -= state.xpToNext;
+    state.level++;
+    state.xpToNext = Math.round(state.xpToNext * 1.3);
+    toast(`🎉 Level Up! Now level ${state.level}!`, 'success');
+  }
+  updateUI();
+}
+
+// =========== UPGRADES ===========
+function buyUpgrade(id) {
+  const upg = state.upgrades.find(u => u.id === id);
+  if (!upg || upg.bought || state.money < upg.cost) return;
+  state.money -= upg.cost;
+  upg.bought = true;
+  toast(`${upg.icon} ${upg.name} purchased!`, 'success');
+  updateUI(); buildShop();
+}
+
+// =========== UI ===========
+function updateUI() {
+  document.getElementById('money-display').textContent = state.money.toFixed(2);
+  document.getElementById('big-money').textContent = state.dayMoney.toFixed(2);
+  document.getElementById('level-display').textContent = state.level;
+  document.getElementById('served-display').textContent = state.served;
+  document.getElementById('day-num').textContent = state.day;
+  document.getElementById('lvl-left').textContent = state.level;
+  document.getElementById('lvl-xp-label').textContent = `${state.xp}/${state.xpToNext} XP`;
+  document.getElementById('lvl-fill').style.width = ((state.xp/state.xpToNext)*100) + '%';
+}
+
+function renderRecent() {
+  const list = document.getElementById('recent-list');
+  list.innerHTML = '';
+  state.recentServed.forEach(item => {
+    const tipClass = item.rounded >= 6 ? 'tip-great' : item.rounded >= 3 ? 'tip-ok' : 'tip-bad';
+    const el = document.createElement('div');
+    el.className = 'recent-item';
+    el.innerHTML = `
+      <div class="recent-avatar"><img src="${item.cust.img}" onerror="this.style.display='none'"></div>
+      <div class="recent-info"><div class="recent-name">${item.cust.name}</div><div class="recent-score">All items cooked ✅</div></div>
+      <span class="recent-tip ${tipClass}">$${item.rounded.toFixed(2)}</span>`;
+    list.appendChild(el);
+  });
+}
+
+function switchTab(tab) {
+  ['order','cook','minigame'].forEach(t => {
+    document.getElementById('station-'+t).classList.toggle('show', t===tab);
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+// =========== TOASTS ===========
+function toast(msg, type='') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.animation = 'toastOut 0.3s forwards'; setTimeout(() => el.remove(), 300); }, 2800);
+}
+
+// =========== BONUS MINIGAMES ===========
+function startMG(type) {
+  document.getElementById('mg-selector').style.display = 'none';
+  document.getElementById('mg-'+type).classList.add('show');
+  if (type==='whack') startWhack();
+  if (type==='fry') initFry();
+  if (type==='shake') initShake();
+  if (type==='sort') initSort();
+}
+function stopMG(type) {
+  document.getElementById('mg-'+type).classList.remove('show');
+  document.getElementById('mg-selector').style.display = 'grid';
+  if (type==='whack') { clearInterval(state.whackTimer); clearInterval(state.whackMoleTimer); }
+  if (type==='fry') { clearInterval(state.fryInterval); state.fryActive = false; }
+  if (type==='shake') { state.shakeActive = false; }
+}
+function startWhack() {
+  state.whackScore = 0; state.whackTimeLeft = 15; state.whackMoles = new Array(9).fill(false);
+  document.getElementById('whack-score-display').textContent = '0';
+  clearInterval(state.whackTimer); clearInterval(state.whackMoleTimer);
+  state.whackMoleTimer = setInterval(() => {
+    state.whackMoles = new Array(9).fill(false);
+    const count = 1 + Math.floor(Math.random()*2);
+    for (let i=0;i<count;i++) state.whackMoles[Math.floor(Math.random()*9)] = true;
+    for(let i=0;i<9;i++){const el=document.getElementById('wh'+i);if(el){el.textContent=state.whackMoles[i]?'🪲':'🕳️';el.classList.toggle('has-mole',state.whackMoles[i]);}}
+  }, 800);
+  state.whackTimer = setInterval(() => {
+    state.whackTimeLeft--;
+    document.getElementById('whack-timer').textContent = state.whackTimeLeft + 's';
+    if (state.whackTimeLeft <= 0) {
+      clearInterval(state.whackTimer); clearInterval(state.whackMoleTimer);
+      const bonus = state.whackScore * 0.25;
+      state.money += bonus; state.dayMoney += bonus; updateUI();
+      toast(`Whack done! ${state.whackScore} hits = $${bonus.toFixed(2)}!`, 'success');
+      stopMG('whack');
+    }
+  }, 1000);
+}
+function whackHole(i) {
+  if (!state.whackMoles[i]) return;
+  state.whackMoles[i] = false;
+  state.whackScore++;
+  document.getElementById('whack-score-display').textContent = state.whackScore;
+  document.getElementById('wh'+i).textContent = '💥';
+  document.getElementById('wh'+i).classList.remove('has-mole');
+  setTimeout(()=>{document.getElementById('wh'+i).textContent='🕳️';},300);
+  coinPop('+$0.25');
+}
+function initFry() {
+  state.fryPct=0; state.fryActive=false;
+  document.getElementById('fry-label').textContent='Click basket to start!';
+  document.getElementById('fry-result').textContent='';
+  document.getElementById('fry-fill').style.width='0%';
+  document.getElementById('fry-fill').style.background='var(--red)';
+}
+function fryClick() {
+  if (!state.fryActive) {
+    state.fryActive=true; state.fryPct=0;
+    document.getElementById('fry-label').textContent='Click to STOP in the golden zone!';
+    clearInterval(state.fryInterval);
+    state.fryInterval = setInterval(()=>{
+      state.fryPct += 1.5; if(state.fryPct>100) state.fryPct=0;
+      const fill=document.getElementById('fry-fill');
+      fill.style.width=state.fryPct+'%';
+      if(state.fryPct<30) fill.style.background='var(--red)';
+      else if(state.fryPct<75) fill.style.background='linear-gradient(90deg,var(--yellow),var(--orange))';
+      else fill.style.background='#5c2e00';
+    },30);
+  } else {
+    clearInterval(state.fryInterval); state.fryActive=false;
+    const pct=state.fryPct;
+    let result, bonus;
+    if(pct>=30&&pct<75){result='⭐ Golden!';bonus=3.0;document.getElementById('fry-result').style.color='var(--gold)';}
+    else if(pct<30){result='😬 Still Raw...';bonus=0.5;document.getElementById('fry-result').style.color='var(--red)';}
+    else{result='💀 Burnt!';bonus=0;document.getElementById('fry-result').style.color='#5c2e00';}
+    document.getElementById('fry-result').textContent=result+(bonus>0?` +$${bonus.toFixed(2)}`:'');
+    document.getElementById('fry-label').textContent='Click to try again!';
+    if(bonus>0){state.money+=bonus;state.dayMoney+=bonus;updateUI();coinPop(`+$${bonus.toFixed(2)}`);}
+  }
+}
+function initShake() {
+  state.shakeClicks=0; state.shakeTarget=25+Math.floor(Math.random()*15); state.shakeActive=true;
+  document.getElementById('shake-target').textContent=state.shakeTarget;
+  document.getElementById('shake-clicks').textContent=`0 / ${state.shakeTarget}`;
+  document.getElementById('shake-fill').style.width='0%';
+  document.getElementById('shake-result').textContent='';
+  document.getElementById('shake-cup').textContent='🧃';
+  document.getElementById('shake-cup').onclick=shakeClick;
+}
+function shakeClick() {
+  if(!state.shakeActive){initShake();return;}
+  state.shakeClicks++;
+  const cup=document.getElementById('shake-cup');
+  cup.style.transform=`rotate(${(Math.random()-0.5)*30}deg) scale(1.1)`;
+  setTimeout(()=>cup.style.transform='',100);
+  const pct=Math.min(100,(state.shakeClicks/state.shakeTarget)*100);
+  document.getElementById('shake-fill').style.width=pct+'%';
+  document.getElementById('shake-clicks').textContent=`${state.shakeClicks} / ${state.shakeTarget}`;
+  if(state.shakeClicks>=state.shakeTarget){
+    state.shakeActive=false;
+    state.money+=2;state.dayMoney+=2;updateUI();
+    document.getElementById('shake-result').textContent='🎉 Perfect Shake! +$2.00';
+    document.getElementById('shake-cup').textContent='✨';
+    coinPop('+$2.00'); toast('Perfect shake!','success');
+  }
+}
+function initSort() {
+  state.sortScore=0; state.sortMax=5; renderSortGame();
+}
+function renderSortGame() {
+  const container=document.getElementById('sort-game');
+  if(state.sortScore>=state.sortMax){
+    state.money+=4;state.dayMoney+=4;updateUI();
+    container.innerHTML=`<div style="text-align:center;padding:20px;"><div style="font-size:3rem">🎊</div><div style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--gold);">All sorted! +$4.00</div></div>`;
+    coinPop('+$4.00'); return;
+  }
+  document.getElementById('sort-score').textContent=`${state.sortScore}/${state.sortMax}`;
+  const cust=CUSTOMERS[Math.floor(Math.random()*CUSTOMERS.length)];
+  const correctItem=MENU_ITEMS[Math.floor(Math.random()*MENU_ITEMS.length)];
+  const others=MENU_ITEMS.filter(i=>i.id!==correctItem.id);
+  const wrong1=others[Math.floor(Math.random()*others.length)];
+  const wrong2=others.filter(i=>i.id!==wrong1.id)[Math.floor(Math.random()*(others.length-1))];
+  const choices=[correctItem,wrong1,wrong2].sort(()=>Math.random()-0.5);
+  container.innerHTML=`
+    <div style="text-align:center;margin-bottom:16px;">
+      <img src="${cust.img}" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--orange);" onerror="this.style.display='none'">
+      <div style="font-weight:800;margin-top:6px;">${cust.name} wants:</div>
+      <div style="font-size:1.5rem;color:var(--yellow);font-family:'Fredoka One',cursive;">${correctItem.name}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      ${choices.map(item=>`
+        <button onclick="sortAnswer('${item.id}','${correctItem.id}')"
+          style="background:var(--card);border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;cursor:pointer;color:white;transition:all 0.2s;"
+          onmouseover="this.style.borderColor='var(--yellow)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+          <img src="${item.img}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+          <div style="font-size:0.75rem;font-weight:700;margin-top:4px;">${item.name}</div>
+        </button>`).join('')}
+    </div>`;
+}
+function sortAnswer(chosen, correct) {
+  if(chosen===correct){state.sortScore++;toast('✅ Correct!','success');renderSortGame();}
+  else{toast('❌ Wrong!','error');document.getElementById('sort-game').classList.add('shake');setTimeout(()=>document.getElementById('sort-game').classList.remove('shake'),400);}
+}
+
+updateUI();
+</script>
+</body>
+</html>
